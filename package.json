@@ -6,13 +6,10 @@
   "scripts": {
     "dev:frontend": "cd frontend && npm run dev",
     "dev:backend": "cd backend && npm run dev",
+    "build": "cd frontend && npm run build",
     "build:frontend": "cd frontend && npm run build",
     "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install"
   },
   "engines": {
     "node": ">=18.0.0"
-  },
-  "devDependencies": {
-    "vite": "^7.3.1"
   }
-}
