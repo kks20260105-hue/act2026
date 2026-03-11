@@ -1,0 +1,95 @@
+/* ============================================
+   Global CSS - Portal Service
+   font-size: 12px 기본, 검정색 기본
+   버튼/라인: 회색 기준, 컬러 배제
+   ============================================ */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --font-size-base: 12px;
+  --color-text: #1a1a1a;
+  --color-text-secondary: #4a4a4a;
+  --color-border: #d0d0d0;
+  --color-border-light: #e8e8e8;
+  --color-bg: #ffffff;
+  --color-bg-secondary: #f5f5f5;
+  --color-btn-default: #888888;
+  --color-btn-hover: #666666;
+  --color-btn-border: #b0b0b0;
+  --color-btn-text: #1a1a1a;
+  --color-disabled: #cccccc;
+  --color-error: #cc0000;
+  --border-radius: 4px;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+html,
+body {
+  font-family: 'Malgun Gothic', '맑은 고딕', 'Apple SD Gothic Neo', sans-serif;
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* PrimeReact 오버라이드 - 회색 테마 적용 */
+.p-button {
+  font-size: 12px !important;
+  background-color: #888888 !important;
+  border-color: #b0b0b0 !important;
+  color: #ffffff !important;
+}
+
+.p-button:hover {
+  background-color: #666666 !important;
+  border-color: #888888 !important;
+}
+
+.p-button.p-button-outlined {
+  background-color: transparent !important;
+  color: #1a1a1a !important;
+  border-color: #b0b0b0 !important;
+}
+
+.p-button.p-button-outlined:hover {
+  background-color: #f0f0f0 !important;
+  color: #1a1a1a !important;
+}
+
+.p-inputtext {
+  font-size: 12px !important;
+  color: var(--color-text) !important;
+  border-color: var(--color-border) !important;
+}
+
+.p-inputtext:focus {
+  border-color: #888888 !important;
+  box-shadow: 0 0 0 2px rgba(136, 136, 136, 0.2) !important;
+}
+
+.p-divider .p-divider-content {
+  background-color: var(--color-bg) !important;
+}
+
+.p-card {
+  box-shadow: var(--shadow-md) !important;
+}
+
+.p-card .p-card-title {
+  font-size: 14px !important;
+  color: var(--color-text) !important;
+}
+
+/* 공통 레이아웃 */
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}

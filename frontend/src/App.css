@@ -1,0 +1,7 @@
+/* App.css - 최상위 App 컴포넌트 스타일 */
+.app-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f5f5f5;
+}

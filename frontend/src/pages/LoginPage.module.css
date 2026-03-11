@@ -1,0 +1,276 @@
+/* ============================================================
+   LoginPage.module.css
+   디자인 원칙:
+   - font-size: 12px 기본
+   - 텍스트: 검정색 (#1a1a1a)
+   - 버튼/선: 회색 기준 (#888888, #b0b0b0)
+   - 컬러 배제 (파랑, 빨강 등 사용 안함)
+   ============================================================ */
+
+/* ─────────────────────────────────────────────
+   전체 래퍼 - 화면 중앙 정렬
+   ───────────────────────────────────────────── */
+.loginWrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: #f0f0f0;
+  padding: 20px;
+}
+
+/* ─────────────────────────────────────────────
+   로그인 카드
+   ───────────────────────────────────────────── */
+.loginCard {
+  width: 100%;
+  max-width: 380px;
+  border: 1px solid #d0d0d0 !important;
+  border-radius: 6px !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.10) !important;
+  background-color: #ffffff !important;
+}
+
+.loginCard :global(.p-card-body) {
+  padding: 28px 32px !important;
+}
+
+.loginCard :global(.p-card-content) {
+  padding: 0 !important;
+}
+
+/* ─────────────────────────────────────────────
+   로고 / 타이틀 영역
+   ───────────────────────────────────────────── */
+.logoArea {
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+.logoIcon {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 52px;
+  height: 52px;
+  border: 1px solid #d0d0d0;
+  border-radius: 8px;
+  background-color: #f5f5f5;
+  margin-bottom: 12px;
+}
+
+.siteTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+  letter-spacing: -0.3px;
+}
+
+.siteSubtitle {
+  font-size: 12px;
+  color: #6a6a6a;
+  margin: 0;
+}
+
+/* ─────────────────────────────────────────────
+   구분선
+   ───────────────────────────────────────────── */
+.divider {
+  margin: 14px 0 !important;
+  border-color: #e0e0e0 !important;
+}
+
+.divider :global(.p-divider-content) {
+  background-color: #ffffff !important;
+}
+
+/* ─────────────────────────────────────────────
+   폼 필드
+   ───────────────────────────────────────────── */
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 14px;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 5px;
+}
+
+.required {
+  color: #888888;
+  margin-left: 2px;
+}
+
+.inputField {
+  font-size: 12px !important;
+  color: #1a1a1a !important;
+  border: 1px solid #d0d0d0 !important;
+  border-radius: 4px !important;
+  padding: 7px 10px !important;
+  width: 100% !important;
+  height: 34px !important;
+  background-color: #ffffff !important;
+  transition: border-color 0.15s ease !important;
+}
+
+.inputField:focus {
+  border-color: #888888 !important;
+  box-shadow: 0 0 0 2px rgba(136, 136, 136, 0.15) !important;
+  outline: none !important;
+}
+
+.inputField:disabled {
+  background-color: #f5f5f5 !important;
+  color: #999999 !important;
+  cursor: not-allowed !important;
+}
+
+.passwordField {
+  width: 100% !important;
+}
+
+.passwordField :global(.p-inputtext) {
+  font-size: 12px !important;
+  color: #1a1a1a !important;
+  border: 1px solid #d0d0d0 !important;
+  border-radius: 4px !important;
+  height: 34px !important;
+  width: 100% !important;
+}
+
+.passwordField :global(.p-password-input) {
+  width: 100% !important;
+}
+
+.errorMsg {
+  font-size: 11px;
+  color: #cc0000;
+  margin-top: 4px;
+}
+
+/* ─────────────────────────────────────────────
+   옵션 행 (로그인 유지 / 비밀번호 찾기)
+   ───────────────────────────────────────────── */
+.optionRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.checkboxGroup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.checkboxLabel {
+  font-size: 12px;
+  color: #4a4a4a;
+  cursor: pointer;
+}
+
+/* ─────────────────────────────────────────────
+   링크 버튼 (텍스트 스타일)
+   ───────────────────────────────────────────── */
+.linkButton {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  color: #666666;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.linkButton:hover {
+  color: #1a1a1a;
+}
+
+.linkButton:disabled {
+  color: #cccccc;
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
+/* ─────────────────────────────────────────────
+   로그인 버튼
+   ───────────────────────────────────────────── */
+.submitBtn {
+  width: 100% !important;
+  height: 36px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  background-color: #666666 !important;
+  border: 1px solid #888888 !important;
+  color: #ffffff !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  transition: background-color 0.15s ease !important;
+  justify-content: center !important;
+}
+
+.submitBtn:hover:not(:disabled) {
+  background-color: #444444 !important;
+  border-color: #666666 !important;
+}
+
+.submitBtn:disabled {
+  background-color: #cccccc !important;
+  border-color: #cccccc !important;
+  cursor: not-allowed !important;
+}
+
+/* ─────────────────────────────────────────────
+   하단 텍스트
+   ───────────────────────────────────────────── */
+.footerText {
+  font-size: 12px;
+  color: #6a6a6a;
+  text-align: center;
+  margin: 0;
+}
+
+/* ─────────────────────────────────────────────
+   카피라이트
+   ───────────────────────────────────────────── */
+.copyright {
+  font-size: 11px;
+  color: #aaaaaa;
+  margin-top: 20px;
+  text-align: center;
+}
+
+/* ─────────────────────────────────────────────
+   PrimeReact Checkbox 오버라이드
+   ───────────────────────────────────────────── */
+:global(.p-checkbox .p-checkbox-box) {
+  border-color: #b0b0b0 !important;
+  width: 14px !important;
+  height: 14px !important;
+}
+
+:global(.p-checkbox .p-checkbox-box.p-highlight) {
+  background-color: #888888 !important;
+  border-color: #888888 !important;
+}
+
+:global(.p-checkbox .p-checkbox-box .p-checkbox-icon) {
+  font-size: 10px !important;
+}
+
+/* ─────────────────────────────────────────────
+   반응형
+   ───────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .loginCard :global(.p-card-body) {
+    padding: 20px 18px !important;
+  }
+}

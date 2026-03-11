@@ -1,0 +1,15 @@
+{
+  "name": "kks202601-root",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Portal Service - Login System",
+  "scripts": {
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "build:frontend": "cd frontend && npm run build",
+    "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
