@@ -32,9 +32,28 @@ module.exports = async (req, res) => {
     return res.status(400).json({ success: false, message: '이메일과 비밀번호를 입력하세요.' });
   }
 
+  // ── 환경변수 체크 ──────────────────────────────────────────
+  const supabaseUrl      = process.env.SUPABASE_URL;
+  const supabaseKey      = process.env.SUPABASE_SERVICE_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    console.error('[login] 환경변수 누락:', {
+      SUPABASE_URL: !!supabaseUrl,
+      SUPABASE_SERVICE_KEY: !!supabaseKey,
+    });
+    return res.status(500).json({
+      success: false,
+      message: '서버 환경변수가 설정되지 않았습니다. Vercel 대시보드 → Settings → Environment Variables 확인 필요.',
+      debug: {
+        SUPABASE_URL: !!supabaseUrl,
+        SUPABASE_SERVICE_KEY: !!supabaseKey,
+      },
+    });
+  }
+
   const supabaseAdmin = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_KEY,
+    supabaseUrl,
+    supabaseKey,
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
 
@@ -44,8 +63,12 @@ module.exports = async (req, res) => {
       .rpc('uf_login', { p_email: email, p_password: password });
 
     if (error) {
-      console.error('[login] uf_login 오류:', error.message);
-      return res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+      console.error('[login] uf_login 오류:', error.message, error.code);
+      return res.status(500).json({
+        success: false,
+        message: 'DB 오류가 발생했습니다.',
+        debug: { code: error.code, detail: error.message },
+      });
     }
 
     if (!rows || rows.length === 0) {
@@ -82,7 +105,11 @@ module.exports = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error('[login] 예외:', err.message);
-    return res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+    console.error('[login] 예외:', err.message, err.stack);
+    return res.status(500).json({
+      success: false,
+      message: '서버 오류가 발생했습니다.',
+      debug: { error: err.message },
+    });
   }
 };
