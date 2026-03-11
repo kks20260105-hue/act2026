@@ -2,8 +2,11 @@ import axios from 'axios';
 import type { LoginRequest, LoginResponse } from '@/types';
 import { ERROR_MESSAGES, STORAGE_KEYS } from '@/constants';
 
-// 백엔드 API Base URL (Vite proxy: /api → http://localhost:4000)
-const API_BASE = '/api/auth';
+// 환경별 API Base URL
+// - 로컬 개발: '' → Vite proxy (/api → http://localhost:4000)
+// - Vercel 배포: 'https://free2026two.vercel.app'
+const API_ORIGIN = import.meta.env.VITE_API_BASE_URL ?? '';
+const API_BASE = `${API_ORIGIN}/api/auth`;
 
 // ─────────────────────────────────────────────────────────────
 // Auth Service: 백엔드 API 연동 (public.users + uf_login)

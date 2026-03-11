@@ -3,7 +3,7 @@ dist/
 build/
 .env
 .env.local
-.env.production
+# .env.production 은 공개 URL만 포함하므로 커밋 허용
 *.log
 .DS_Store
 Thumbs.db
