@@ -10,7 +10,11 @@
     "build:frontend": "cd frontend && npm run build",
     "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install"
   },
-    "engines": {
-      "node": ">=18.0.0"
-    }
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.99.0",
+    "jsonwebtoken": "^9.0.2"
   }
+}

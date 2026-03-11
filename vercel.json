@@ -3,13 +3,13 @@
   "name": "kks202601-frontend",
   "buildCommand": "cd frontend && npm install && npm run build",
   "outputDirectory": "frontend/dist",
-  "installCommand": "echo skip-root-install",
+  "installCommand": "npm install",
   "framework": null,
   "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
+    { "source": "/api/auth/login",  "destination": "/api/auth/login" },
+    { "source": "/api/auth/logout", "destination": "/api/auth/logout" },
+    { "source": "/api/auth/me",     "destination": "/api/auth/me" },
+    { "source": "/((?!api/).*)",     "destination": "/index.html" }
   ],
   "headers": [
     {
