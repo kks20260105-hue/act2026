@@ -4,7 +4,7 @@ import { ERROR_MESSAGES, STORAGE_KEYS } from '@/constants';
 
 // 환경별 API Base URL
 // - 로컬 개발: '' → Vite proxy (/api → http://localhost:4000)
-// - Vercel 배포: 'https://free2026two.vercel.app'
+// - Vercel 배포: 'https://act2026.vercel.app'
 const API_ORIGIN = import.meta.env.VITE_API_BASE_URL ?? '';
 const API_BASE = `${API_ORIGIN}/api/auth`;
 

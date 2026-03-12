@@ -4,7 +4,7 @@
 포털 서비스 기본 로그인 페이지 (React + TypeScript + Supabase + PrimeReact)
 
 ## 배포 URL
-- Frontend: https://free2026one.vercel.app/
+- Frontend: https://act2026.vercel.app/
 
 ## 기술 스택
 | 구분 | 기술 |
