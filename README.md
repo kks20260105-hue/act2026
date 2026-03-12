@@ -66,12 +66,57 @@ cd backend && npm install && npm run dev
 
 
 
+2026.03.12
+1.깃허브
+https://github.com/kks20260105-hue/act2026
+
+2.db
+https://supabase.com/dashboard/org/yokkarmkygaihynhrelk
+
+
+3.web
+https://vercel.com/kks20260105-3914s-projects
+
+Projects -> act2026 ->  ...  -> settings
+https://vercel.com/kks20260105-3914s-projects/act2026/settings
+
+좌측메뉴:Environment Variables
+=> 
+Add Environment Variable
+SUPABASE_URL=
+SUPABASE_ANON_KEY=
+
+save
 
 
 
 
 
+cd kks-dev
+git init
+git add 
+git commit -m "Initial commit"
+git remote add origin https://github.com/kks20260105-hue/act2026.git
+git branch -M main
+git push -u origin main
 
+
+cd kks-dev
+git status
+git branch
+git add .
+git commit -m "Initial commit"
+git branch -M main
+git push -u origin main
+
+
+git remote add origin https://github.com/kks20260105-hue/act2026.git
+git push -u origin main
+
+
+git log --oneline -3; Write-Host "---"; git remote -v
+
+git add README.md; git status --short
 
 
 
