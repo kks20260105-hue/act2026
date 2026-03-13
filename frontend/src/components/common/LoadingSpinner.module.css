@@ -1,0 +1,14 @@
+/* LoadingSpinner.module.css */
+
+.fullPage {
+  display:         flex;
+  justify-content: center;
+  align-items:     center;
+  height:          100vh;
+}
+
+.inline {
+  display:         flex;
+  justify-content: center;
+  padding:         48px;
+}

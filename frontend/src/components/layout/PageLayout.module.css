@@ -1,0 +1,16 @@
+/* PageLayout.module.css */
+
+.inner {
+  padding: 16px 24px;
+}
+
+.breadcrumb {
+  margin-bottom: 16px;
+}
+
+.content {
+  background:   #fff;
+  padding:      24px;
+  border-radius: 8px;
+  min-height:   calc(100vh - 160px);
+}

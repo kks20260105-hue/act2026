@@ -1,4 +1,5 @@
 import React from 'react';
+import styles from './HomePage.module.css';
 import { Typography, Card, Row, Col, Space } from 'antd';
 import {
   AppstoreOutlined, UploadOutlined, TeamOutlined,
@@ -24,19 +25,19 @@ const HomePage: React.FC = () => {
 
   return (
     <PageLayout showLNB={false}>
-      <div style={{ maxWidth: 900, margin: '0 auto' }}>
+      <div className={styles.container}>
         <Title level={3}>안녕하세요, {user?.email} 님 👋</Title>
         <Text type="secondary">KKS 엔터프라이즈 포털에 오신 것을 환영합니다.</Text>
 
         {isAdmin && (
-          <div style={{ marginTop: 32 }}>
+          <div className={styles.adminSection}>
             <Title level={5}>관리 메뉴</Title>
             <Row gutter={[16, 16]}>
               {adminCards.map((card) => (
                 <Col key={card.path} xs={24} sm={12} md={8}>
                   <Card
                     hoverable
-                    style={{ cursor: 'pointer', textAlign: 'center' }}
+                    className={styles.adminCard}
                     onClick={() => navigate(card.path)}
                   >
                     <Space direction="vertical" align="center">

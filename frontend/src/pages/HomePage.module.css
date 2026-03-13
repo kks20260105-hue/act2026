@@ -1,0 +1,19 @@
+/* HomePage.module.css */
+
+.container {
+  max-width: 900px;
+  margin:    0 auto;
+}
+
+.adminSection {
+  margin-top: 32px;
+}
+
+.adminCard {
+  cursor:     pointer;
+  text-align: center;
+}
+
+.adminCard :global(.ant-card-body) {
+  padding: 24px 16px;
+}

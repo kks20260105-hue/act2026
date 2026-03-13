@@ -31,10 +31,22 @@ const LoginPage: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ email: values.email, password: values.password }),
       });
-      const json = await res.json();
+
+      // 빈 응답·비-JSON 방어
+      const text = await res.text();
+      if (!text) throw new Error('서버 응답이 없습니다. 잠시 후 다시 시도해 주세요.');
+      let json: any;
+      try { json = JSON.parse(text); }
+      catch { throw new Error('서버 응답 형식 오류입니다.'); }
+
       if (!res.ok) throw new Error(json.message ?? '로그인에 실패했습니다.');
       const { user, accessToken } = json.data ?? json;
-      setUser({ id: user.id, email: user.email, nickname: user.nickname }, accessToken, user.roles ?? []);
+      // 백엔드 응답: { id, email, username, displayName }
+      setUser(
+        { id: user.id, email: user.email, nickname: user.username ?? user.nickname ?? '' },
+        accessToken,
+        user.roles ?? [],
+      );
       message.success('로그인 성공!');
       navigate('/', { replace: true });
     } catch (err: any) {

@@ -17,6 +17,7 @@ export default defineConfig(({ mode }) => {
 
     server: {
       port: 3000,
+      host: '0.0.0.0',   // IPv4 + IPv6 모두 바인딩
 
       // 개발환경에서만 프록시 사용
       proxy: isDev

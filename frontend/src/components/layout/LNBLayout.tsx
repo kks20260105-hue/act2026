@@ -1,5 +1,6 @@
 import React from 'react';
 import { Layout, Menu } from 'antd';
+import styles from './LNBLayout.module.css';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useMenuStore } from '../../stores/menuStore';
 import * as Icons from '@ant-design/icons';
@@ -33,11 +34,11 @@ export default function LNBLayout({ parentMenuUrl }: Props) {
   }
 
   return (
-    <Sider width={220} style={{ background: '#fff', borderRight: '1px solid #f0f0f0' }}>
+    <Sider width={220} className={styles.sider}>
       <Menu
         mode="inline"
         selectedKeys={[location.pathname]}
-        style={{ height: '100%', borderRight: 0 }}
+        className={styles.menu}
         items={lnbMenus.map((m) => ({
           key:   m.menu_url,
           icon:  getIcon(m.icon_class),

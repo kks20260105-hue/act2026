@@ -1,5 +1,6 @@
 import React from 'react';
 import { Layout, Breadcrumb } from 'antd';
+import styles from './PageLayout.module.css';
 import GNBLayout from './GNBLayout';
 import LNBLayout from './LNBLayout';
 
@@ -23,21 +24,14 @@ export default function PageLayout({ children, breadcrumbs, showLNB = true, pare
       <GNBLayout />
       <Layout>
         {showLNB && <LNBLayout parentMenuUrl={parentMenuUrl} />}
-        <Layout style={{ padding: '16px 24px' }}>
+        <Layout className={styles.inner}>
           {breadcrumbs && breadcrumbs.length > 0 && (
             <Breadcrumb
-              style={{ marginBottom: 16 }}
+              className={styles.breadcrumb}
               items={breadcrumbs.map((b) => ({ title: b.href ? <a href={b.href}>{b.title}</a> : b.title }))}
             />
           )}
-          <Content
-            style={{
-              background:   '#fff',
-              padding:      24,
-              borderRadius: 8,
-              minHeight:    'calc(100vh - 160px)',
-            }}
-          >
+          <Content className={styles.content}>
             {children}
           </Content>
         </Layout>

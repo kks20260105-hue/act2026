@@ -6,7 +6,9 @@ export interface AuthedUser {
   email: string;
 }
 
-declare module '@vercel/node' {
+declare global {
+  // Augment the existing VercelRequest interface
+  // eslint-disable-next-line @typescript-eslint/no-empty-interface
   interface VercelRequest {
     user?: AuthedUser;
   }

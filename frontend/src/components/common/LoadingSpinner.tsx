@@ -1,5 +1,6 @@
 import React from 'react';
 import { Spin } from 'antd';
+import styles from './LoadingSpinner.module.css';
 
 interface Props {
   tip?: string;
@@ -9,13 +10,13 @@ interface Props {
 export default function LoadingSpinner({ tip = '로딩 중...', fullPage = false }: Props) {
   if (fullPage) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+      <div className={styles.fullPage}>
         <Spin size="large" tip={tip} />
       </div>
     );
   }
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', padding: '48px' }}>
+    <div className={styles.inline}>
       <Spin tip={tip} />
     </div>
   );

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Layout, Menu, Avatar, Dropdown, Space, Typography } from 'antd';
+import styles from './GNBLayout.module.css';
 import { UserOutlined, LogoutOutlined } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -34,23 +35,9 @@ export default function GNBLayout() {
   };
 
   return (
-    <Header
-      style={{
-        display:         'flex',
-        alignItems:      'center',
-        justifyContent:  'space-between',
-        background:      '#001529',
-        padding:         '0 24px',
-        position:        'sticky',
-        top:             0,
-        zIndex:          100,
-      }}
-    >
+    <Header className={styles.header} style={{ background: '#001529' }}>
       {/* 로고 */}
-      <div
-        style={{ color: '#fff', fontWeight: 700, fontSize: 18, cursor: 'pointer', minWidth: 120 }}
-        onClick={() => navigate('/')}
-      >
+      <div className={styles.logo} onClick={() => navigate('/')}>
         KKS Portal
       </div>
 
@@ -59,7 +46,7 @@ export default function GNBLayout() {
         theme="dark"
         mode="horizontal"
         selectedKeys={[location.pathname.split('/')[1] ? `/${location.pathname.split('/')[1]}` : '/']}
-        style={{ flex: 1, minWidth: 0 }}
+        className={styles.gnbMenu}
         items={gnbMenus.map((m) => ({
           key:   m.menu_url,
           label: m.menu_nm,
@@ -69,9 +56,9 @@ export default function GNBLayout() {
 
       {/* 사용자 정보 */}
       <Dropdown menu={userMenu} placement="bottomRight">
-        <Space style={{ cursor: 'pointer' }}>
+        <Space className={styles.user}>
           <Avatar icon={<UserOutlined />} size="small" style={{ background: '#1677ff' }} />
-          <Text style={{ color: '#fff' }}>{user?.email}</Text>
+          <Text className={styles.userEmail}>{user?.email}</Text>
         </Space>
       </Dropdown>
     </Header>
