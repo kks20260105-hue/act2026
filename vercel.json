@@ -9,7 +9,27 @@
     { "source": "/api/auth/login",  "destination": "/api/auth/login" },
     { "source": "/api/auth/logout", "destination": "/api/auth/logout" },
     { "source": "/api/auth/me",     "destination": "/api/auth/me" },
-    { "source": "/((?!api/).*)",     "destination": "/index.html" }
+
+    { "source": "/api/menus/upload/logs/:logId", "destination": "/api/menus/upload/logs/[logId]" },
+    { "source": "/api/menus/upload/logs",        "destination": "/api/menus/upload/logs/index" },
+    { "source": "/api/menus/upload/template",    "destination": "/api/menus/upload/template" },
+    { "source": "/api/menus/upload/preview",     "destination": "/api/menus/upload/preview" },
+    { "source": "/api/menus/upload/confirm",     "destination": "/api/menus/upload/confirm" },
+    { "source": "/api/menus/order",              "destination": "/api/menus/order" },
+    { "source": "/api/menus/my",                 "destination": "/api/menus/my" },
+    { "source": "/api/menus/:menuId",            "destination": "/api/menus/[menuId]" },
+    { "source": "/api/menus",                    "destination": "/api/menus/index" },
+
+    { "source": "/api/roles/:roleId", "destination": "/api/roles/[roleId]" },
+    { "source": "/api/roles",         "destination": "/api/roles/index" },
+
+    { "source": "/api/menu-roles/batch", "destination": "/api/menu-roles/batch" },
+    { "source": "/api/menu-roles",       "destination": "/api/menu-roles/index" },
+
+    { "source": "/api/users/:userId/roles/:roleId", "destination": "/api/users/[userId]/roles/[roleId]" },
+    { "source": "/api/users/:userId/roles",         "destination": "/api/users/[userId]/roles/index" },
+
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "headers": [
     {

@@ -118,6 +118,11 @@ git log --oneline -3; Write-Host "---"; git remote -v
 
 git add README.md; git status --short
 
+git add README.md; git status --short
+
+git commit -m "docs: update README - vercel env vars and git commands"; git push
+
+
 
 
 --실행파일 순서

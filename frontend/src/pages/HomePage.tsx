@@ -1,71 +1,56 @@
 import React from 'react';
+import { Typography, Card, Row, Col, Space } from 'antd';
+import {
+  AppstoreOutlined, UploadOutlined, TeamOutlined,
+  ApartmentOutlined, UserSwitchOutlined,
+} from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { Button } from 'primereact/button';
-import { useAppDispatch, useAppSelector } from '@/hooks/useRedux';
-import { logoutThunk } from '@/redux/slices/authSlice';
-import { ROUTE_PATHS } from '@/constants';
+import PageLayout from '../components/layout/PageLayout';
+import { useAuth } from '../hooks/useAuth';
+
+const { Title, Text } = Typography;
+
+const adminCards = [
+  { title: '메뉴 관리',        icon: <AppstoreOutlined   style={{ fontSize: 32, color: '#1677ff' }} />, path: '/admin/menus' },
+  { title: '메뉴 엑셀 업로드', icon: <UploadOutlined     style={{ fontSize: 32, color: '#52c41a' }} />, path: '/admin/menu-upload' },
+  { title: 'Role 관리',        icon: <TeamOutlined       style={{ fontSize: 32, color: '#eb2f96' }} />, path: '/admin/roles' },
+  { title: '메뉴-Role 매핑',   icon: <ApartmentOutlined  style={{ fontSize: 32, color: '#faad14' }} />, path: '/admin/menu-roles' },
+  { title: '사용자-Role 관리', icon: <UserSwitchOutlined style={{ fontSize: 32, color: '#722ed1' }} />, path: '/admin/user-roles' },
+];
 
 const HomePage: React.FC = () => {
-  const dispatch = useAppDispatch();
-  const navigate = useNavigate();
-  const { user } = useAppSelector((state) => state.auth);
-
-  const handleLogout = async () => {
-    await dispatch(logoutThunk());
-    navigate(ROUTE_PATHS.LOGIN, { replace: true });
-  };
+  const navigate          = useNavigate();
+  const { user, isAdmin } = useAuth();
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
-      {/* 상단 네비게이션 바 */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '0.75rem 1.5rem',
-          backgroundColor: '#ffffff',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.08)',
-        }}
-      >
-        {/* 로고 / 앱명 */}
-        <span style={{ fontWeight: 700, fontSize: '1.2rem', color: '#333' }}>
-          KKS App
-        </span>
+    <PageLayout showLNB={false}>
+      <div style={{ maxWidth: 900, margin: '0 auto' }}>
+        <Title level={3}>안녕하세요, {user?.email} 님 👋</Title>
+        <Text type="secondary">KKS 엔터프라이즈 포털에 오신 것을 환영합니다.</Text>
 
-        {/* 유저 정보 + 로그아웃 */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          {user && (
-            <span style={{ fontSize: '0.9rem', color: '#555' }}>
-              👤 {user.username ?? user.email}
-            </span>
-          )}
-          <Button
-            label="로그아웃"
-            icon="pi pi-sign-out"
-            severity="secondary"
-            outlined
-            size="small"
-            onClick={handleLogout}
-          />
-        </div>
+        {isAdmin && (
+          <div style={{ marginTop: 32 }}>
+            <Title level={5}>관리 메뉴</Title>
+            <Row gutter={[16, 16]}>
+              {adminCards.map((card) => (
+                <Col key={card.path} xs={24} sm={12} md={8}>
+                  <Card
+                    hoverable
+                    style={{ cursor: 'pointer', textAlign: 'center' }}
+                    onClick={() => navigate(card.path)}
+                  >
+                    <Space direction="vertical" align="center">
+                      {card.icon}
+                      <Text strong>{card.title}</Text>
+                    </Space>
+                  </Card>
+                </Col>
+              ))}
+            </Row>
+          </div>
+        )}
       </div>
-
-      {/* 본문 */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          minHeight: 'calc(100vh - 56px)',
-          fontSize: '48px',
-          fontWeight: 'bold',
-          color: '#333',
-        }}
-      >
-        Hello World(김기성입니다.)
-      </div>
-    </div>
+    </PageLayout>
   );
 };
 
