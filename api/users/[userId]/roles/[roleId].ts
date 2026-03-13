@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabaseAdmin } from '../../../../../lib/supabaseClient';
-import { withAuth } from '../../../../../lib/authMiddleware';
-import { withRole } from '../../../../../lib/checkRole';
-import { successResponse, errorResponse } from '../../../../../lib/errorCodes';
+import { supabaseAdmin } from '../../../../lib/supabaseClient';
+import { withAuth } from '../../../../lib/authMiddleware';
+import { withRole } from '../../../../lib/checkRole';
+import { successResponse, errorResponse } from '../../../../lib/errorCodes';
 
 async function handler(req: VercelRequest, res: VercelResponse) {
   const { userId, roleId } = req.query as { userId: string; roleId: string };

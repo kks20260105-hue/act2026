@@ -160,13 +160,31 @@ res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     }
 
     // ─────────────────────────────────────────
-    // JWT 발급
+    // 사용자 역할(Role) 조회
+    // tb_user_role → tb_role.role_cd 목록
+    // ─────────────────────────────────────────
+    const { data: roleRows, error: roleErr } = await supabaseAdmin
+      .from('tb_user_role')
+      .select('tb_role(role_cd)')
+      .eq('user_id', user.id);
+
+    if (roleErr) {
+      console.error('[login] role 조회 오류:', roleErr.message);
+    }
+
+    const roles = (roleRows ?? [])
+      .map((r) => r.tb_role?.role_cd)
+      .filter(Boolean);
+
+    // ─────────────────────────────────────────
+    // JWT 발급 (roles 포함)
     // ─────────────────────────────────────────
     const token = jwt.sign(
       {
         id: user.id,
         email: user.email,
-        username: user.username
+        username: user.username,
+        roles
       },
       JWT_SECRET,
       {
@@ -175,7 +193,7 @@ res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     );
 
     // ─────────────────────────────────────────
-    // 응답
+    // 응답 (roles 포함)
     // ─────────────────────────────────────────
     return res.status(200).json({
       success: true,
@@ -185,7 +203,8 @@ res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
           id: user.id,
           email: user.email,
           username: user.username,
-          displayName: user.display_name
+          displayName: user.display_name,
+          roles
         }
       }
     });

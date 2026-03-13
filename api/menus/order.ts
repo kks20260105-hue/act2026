@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabaseAdmin } from '../../../lib/supabaseClient';
-import { withAuth } from '../../../lib/authMiddleware';
-import { withRole } from '../../../lib/checkRole';
-import { successResponse, errorResponse } from '../../../lib/errorCodes';
+import { supabaseAdmin } from '../../lib/supabaseClient';
+import { withAuth } from '../../lib/authMiddleware';
+import { withRole } from '../../lib/checkRole';
+import { successResponse, errorResponse } from '../../lib/errorCodes';
 
 /**
  * PUT /api/menus/order
@@ -15,7 +15,7 @@ async function handler(req: VercelRequest, res: VercelResponse) {
 
   const { orders } = req.body as { orders: { menu_id: string; menu_order: number }[] };
   if (!Array.isArray(orders) || orders.length === 0) {
-    return res.status(400).json(errorResponse('MISSING_FIELD', 'orders 필드는 배열이어야 합니다.'));
+    return res.status(400).json(errorResponse('MISSING_FIELD', 'orders ?�드??배열?�어???�니??'));
   }
 
   const updates = await Promise.all(
@@ -29,7 +29,7 @@ async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json(errorResponse('DB_ERROR', failed.error.message));
   }
 
-  return res.status(200).json(successResponse(null, '순서가 저장되었습니다.'));
+  return res.status(200).json(successResponse(null, '?�서가 ?�?�되?�습?�다.'));
 }
 
 export default withAuth(withRole(['SUPER_ADMIN', 'ADMIN'], handler));

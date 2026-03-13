@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabaseAdmin } from '../../../../lib/supabaseClient';
-import { withAuth } from '../../../../lib/authMiddleware';
-import { withRole } from '../../../../lib/checkRole';
-import { successResponse, errorResponse } from '../../../../lib/errorCodes';
-import type { MenuExcelRow, UploadPreviewRow } from '../../../../lib/types';
+import { supabaseAdmin } from '../../../lib/supabaseClient';
+import { withAuth } from '../../../lib/authMiddleware';
+import { withRole } from '../../../lib/checkRole';
+import { successResponse, errorResponse } from '../../../lib/errorCodes';
+import type { MenuExcelRow, UploadPreviewRow } from '../../../lib/types';
 
 const REQUIRED_FIELDS = ['menu_nm', 'menu_url', 'menu_depth', 'menu_order'] as const;
 const MAX_ROWS = 500;
@@ -12,17 +12,17 @@ function validateRow(row: MenuExcelRow, rowNo: number): UploadPreviewRow {
   const errors: string[] = [];
 
   REQUIRED_FIELDS.forEach((f) => {
-    if (!row[f] && row[f] !== 0) errors.push(`${f} 필수`);
+    if (!row[f] && row[f] !== 0) errors.push(`${f} ?�수`);
   });
 
   if (row.menu_depth && ![1, 2].includes(Number(row.menu_depth))) {
-    errors.push('menu_depth는 1 또는 2');
+    errors.push('menu_depth??1 ?�는 2');
   }
   if (row.menu_url && !/^\//.test(row.menu_url)) {
-    errors.push('menu_url은 /로 시작');
+    errors.push('menu_url?� /�??�작');
   }
   if (row.use_yn && !['Y', 'N'].includes(row.use_yn.toUpperCase())) {
-    errors.push('use_yn은 Y 또는 N');
+    errors.push('use_yn?� Y ?�는 N');
   }
 
   return {
@@ -36,7 +36,7 @@ function validateRow(row: MenuExcelRow, rowNo: number): UploadPreviewRow {
 /**
  * POST /api/menus/upload/preview
  * Body: { fileName: string; rows: MenuExcelRow[] }
- * 서버 측 유효성 검증만 수행, DB 기록 없음
+ * ?�버 �??�효??검증만 ?�행, DB 기록 ?�음
  */
 async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -46,19 +46,19 @@ async function handler(req: VercelRequest, res: VercelResponse) {
   const { fileName, rows } = req.body as { fileName: string; rows: MenuExcelRow[] };
 
   if (!rows || !Array.isArray(rows) || rows.length === 0) {
-    return res.status(400).json(errorResponse('MISSING_FIELD', 'rows 데이터가 없습니다.'));
+    return res.status(400).json(errorResponse('MISSING_FIELD', 'rows ?�이?��? ?�습?�다.'));
   }
   if (rows.length > MAX_ROWS) {
-    return res.status(400).json(errorResponse('UPLOAD_LIMIT', `최대 ${MAX_ROWS}행까지 업로드 가능합니다.`));
+    return res.status(400).json(errorResponse('UPLOAD_LIMIT', `최�? ${MAX_ROWS}?�까지 ?�로??가?�합?�다.`));
   }
 
-  // URL 중복 검사 (업로드 데이터 내부)
+  // URL 중복 검??(?�로???�이???��?)
   const urlSet = new Set<string>();
   const previewRows: UploadPreviewRow[] = rows.map((row, i) => {
-    const validated = validateRow(row, i + 2);  // 엑셀 헤더=1행, 데이터=2행~
+    const validated = validateRow(row, i + 2);  // ?��? ?�더=1?? ?�이??2??
     if (row.menu_url) {
       if (urlSet.has(row.menu_url)) {
-        validated.errors.push('업로드 파일 내 menu_url 중복');
+        validated.errors.push('?�로???�일 ??menu_url 중복');
         validated.status = 'error';
       }
       urlSet.add(row.menu_url);

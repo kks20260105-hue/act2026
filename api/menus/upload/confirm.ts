@@ -1,13 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabaseAdmin } from '../../../../lib/supabaseClient';
-import { withAuth } from '../../../../lib/authMiddleware';
-import { withRole } from '../../../../lib/checkRole';
-import { successResponse, errorResponse } from '../../../../lib/errorCodes';
-import type { MenuExcelRow } from '../../../../lib/types';
+import { supabaseAdmin } from '../../../lib/supabaseClient';
+import { withAuth } from '../../../lib/authMiddleware';
+import { withRole } from '../../../lib/checkRole';
+import { successResponse, errorResponse } from '../../../lib/errorCodes';
+import type { MenuExcelRow } from '../../../lib/types';
 
 /**
  * POST /api/menus/upload/confirm
- * 프리뷰에서 확인된 rows를 실제 DB에 반영합니다. (UPSERT)
+ * ?�리뷰에???�인??rows�??�제 DB??반영?�니?? (UPSERT)
  * Body: { fileName: string; rows: MenuExcelRow[] }
  */
 async function handler(req: VercelRequest, res: VercelResponse) {
@@ -19,14 +19,14 @@ async function handler(req: VercelRequest, res: VercelResponse) {
   const { fileName, rows } = req.body as { fileName: string; rows: MenuExcelRow[] };
 
   if (!rows || !Array.isArray(rows) || rows.length === 0) {
-    return res.status(400).json(errorResponse('MISSING_FIELD', '업로드할 rows가 없습니다.'));
+    return res.status(400).json(errorResponse('MISSING_FIELD', '?�로?�할 rows가 ?�습?�다.'));
   }
 
   let successCnt = 0;
   let failCnt    = 0;
   const errors: { rowNo: number; error_msg: string }[] = [];
 
-  // parent_menu_url → parent_menu_id 변환을 위한 URL맵 사전 조회
+  // parent_menu_url ??parent_menu_id 변?�을 ?�한 URL�??�전 조회
   const parentUrls = [...new Set(rows.filter((r) => r.parent_menu_url).map((r) => r.parent_menu_url!))];
   const urlToIdMap: Record<string, string> = {};
 
@@ -39,7 +39,7 @@ async function handler(req: VercelRequest, res: VercelResponse) {
     (parentMenus ?? []).forEach((m: any) => { urlToIdMap[m.menu_url] = m.menu_id; });
   }
 
-  // 행별 UPSERT
+  // ?�별 UPSERT
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     const rowNo = i + 2;
@@ -62,7 +62,7 @@ async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (menuErr || !menuData) {
       failCnt++;
-      errors.push({ rowNo, error_msg: menuErr?.message ?? '알 수 없는 오류' });
+      errors.push({ rowNo, error_msg: menuErr?.message ?? '?????�는 ?�류' });
       continue;
     }
 
@@ -88,11 +88,11 @@ async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     successCnt++;
-    // 새로운 URL→ID 매핑 추가 (후속 행의 parent 참조 대응)
+    // ?�로??URL?�ID 매핑 추�? (?�속 ?�의 parent 참조 ?�??
     urlToIdMap[row.menu_url] = menuData.menu_id;
   }
 
-  // 업로드 이력 저장
+  // ?�로???�력 ?�??
   const status = failCnt === 0 ? 'SUCCESS' : successCnt > 0 ? 'PARTIAL' : 'FAIL';
   const { data: logData } = await supabaseAdmin.from('tb_menu_upload_log').insert({
     file_nm:        fileName,
@@ -105,7 +105,7 @@ async function handler(req: VercelRequest, res: VercelResponse) {
     upload_user_id: user.id,
   }).select('log_id').single();
 
-  // 오류 상세 저장
+  // ?�류 ?�세 ?�??
   if (logData && errors.length > 0) {
     await supabaseAdmin.from('tb_menu_upload_error').insert(
       errors.map((e) => ({
@@ -124,7 +124,7 @@ async function handler(req: VercelRequest, res: VercelResponse) {
     successCnt,
     failCnt,
     errors,
-  }, `${successCnt}건 저장 완료`));
+  }, `${successCnt}�??�???�료`));
 }
 
 export default withAuth(withRole(['SUPER_ADMIN', 'ADMIN'], handler));

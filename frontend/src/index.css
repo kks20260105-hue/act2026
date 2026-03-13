@@ -1,95 +1,149 @@
-/* ============================================
-   Global CSS - Portal Service
-   font-size: 12px 기본, 검정색 기본
-   버튼/라인: 회색 기준, 컬러 배제
-   ============================================ */
+﻿/* ============================================================
+   index.css  KKS Portal 전역 스타일
+   - 서체: Pretendard
+   - 기본 폰트 크기: 13px
+   - 컬러: 회색 계열 (#1a1a1a / #595959 / #d0d0d0)
+   - 컬러(파랑빨강 등) 배제
+   ============================================================ */
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
+/*  CSS 변수  */
 :root {
-  --font-size-base: 12px;
-  --color-text: #1a1a1a;
-  --color-text-secondary: #4a4a4a;
-  --color-border: #d0d0d0;
-  --color-border-light: #e8e8e8;
-  --color-bg: #ffffff;
+  --font-family:        'Pretendard', 'Malgun Gothic', '맑은 고딕', 'Apple SD Gothic Neo', sans-serif;
+  --font-size-base:     13px;
+  --font-size-sm:       12px;
+  --font-size-lg:       15px;
+
+  --color-text:         #1a1a1a;
+  --color-text-sub:     #4a4a4a;
+  --color-text-muted:   #888888;
+  --color-text-white:   #ffffff;
+
+  --color-bg:           #ffffff;
+  --color-bg-layout:    #f0f0f0;
   --color-bg-secondary: #f5f5f5;
-  --color-btn-default: #888888;
-  --color-btn-hover: #666666;
-  --color-btn-border: #b0b0b0;
-  --color-btn-text: #1a1a1a;
-  --color-disabled: #cccccc;
-  --color-error: #cc0000;
-  --border-radius: 4px;
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12);
-  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.15);
+  --color-bg-hover:     #fafafa;
+
+  --color-border:       #d0d0d0;
+  --color-border-light: #e8e8e8;
+
+  --color-primary:      #595959;
+  --color-primary-hover:#333333;
+  --color-primary-dark: #1a1a1a;
+
+  --color-disabled:     #cccccc;
+  --color-error:        #cc0000;
+
+  --border-radius-sm:   3px;
+  --border-radius:      4px;
+  --border-radius-lg:   6px;
+
+  --shadow-sm:          0 1px 3px rgba(0, 0, 0, 0.10);
+  --shadow-md:          0 2px 8px rgba(0, 0, 0, 0.12);
+  --shadow-lg:          0 4px 16px rgba(0, 0, 0, 0.14);
 }
 
-html,
-body {
-  font-family: 'Malgun Gothic', '맑은 고딕', 'Apple SD Gothic Neo', sans-serif;
-  font-size: var(--font-size-base);
-  color: var(--color-text);
-  background-color: var(--color-bg);
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
+/*  리셋  */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin:     0;
+  padding:    0;
 }
 
-/* PrimeReact 오버라이드 - 회색 테마 적용 */
-.p-button {
-  font-size: 12px !important;
-  background-color: #888888 !important;
-  border-color: #b0b0b0 !important;
-  color: #ffffff !important;
+/*  기본  */
+html, body {
+  font-family:              var(--font-family);
+  font-size:                var(--font-size-base);
+  color:                    var(--color-text);
+  background-color:         var(--color-bg-layout);
+  line-height:              1.6;
+  -webkit-font-smoothing:   antialiased;
+  -moz-osx-font-smoothing:  grayscale;
 }
 
-.p-button:hover {
-  background-color: #666666 !important;
-  border-color: #888888 !important;
-}
-
-.p-button.p-button-outlined {
-  background-color: transparent !important;
-  color: #1a1a1a !important;
-  border-color: #b0b0b0 !important;
-}
-
-.p-button.p-button-outlined:hover {
-  background-color: #f0f0f0 !important;
-  color: #1a1a1a !important;
-}
-
-.p-inputtext {
-  font-size: 12px !important;
-  color: var(--color-text) !important;
-  border-color: var(--color-border) !important;
-}
-
-.p-inputtext:focus {
-  border-color: #888888 !important;
-  box-shadow: 0 0 0 2px rgba(136, 136, 136, 0.2) !important;
-}
-
-.p-divider .p-divider-content {
-  background-color: var(--color-bg) !important;
-}
-
-.p-card {
-  box-shadow: var(--shadow-md) !important;
-}
-
-.p-card .p-card-title {
-  font-size: 14px !important;
-  color: var(--color-text) !important;
-}
-
-/* 공통 레이아웃 */
 #root {
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
 }
+
+/*  Ant Design 전역 오버라이드  */
+
+/* 버튼 */
+.ant-btn-primary {
+  background-color: var(--color-primary)  !important;
+  border-color:     var(--color-primary)  !important;
+  color:            #fff                  !important;
+}
+.ant-btn-primary:hover,
+.ant-btn-primary:focus {
+  background-color: var(--color-primary-hover)  !important;
+  border-color:     var(--color-primary-hover)  !important;
+}
+.ant-btn-default {
+  border-color: var(--color-border) !important;
+  color:        var(--color-text)   !important;
+}
+.ant-btn-default:hover {
+  border-color: var(--color-primary) !important;
+  color:        var(--color-primary) !important;
+}
+
+/* 입력 필드 포커스 */
+.ant-input:focus,
+.ant-input-affix-wrapper:focus,
+.ant-input-affix-wrapper-focused {
+  border-color: var(--color-primary) !important;
+  box-shadow:   0 0 0 2px rgba(89, 89, 89, 0.15) !important;
+}
+
+/* 선택박스 포커스 */
+.ant-select-focused .ant-select-selector {
+  border-color: var(--color-primary) !important;
+  box-shadow:   0 0 0 2px rgba(89, 89, 89, 0.15) !important;
+}
+
+/* 테이블 헤더 */
+.ant-table-thead > tr > th {
+  background-color: var(--color-bg-secondary) !important;
+  color:            var(--color-text)          !important;
+  font-weight:      600                        !important;
+  border-bottom:    1px solid var(--color-border) !important;
+}
+
+/* 카드 */
+.ant-card {
+  border-color: var(--color-border-light) !important;
+  box-shadow:   var(--shadow-sm)          !important;
+}
+
+/* 탭 활성 */
+.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: var(--color-primary) !important;
+}
+.ant-tabs-ink-bar {
+  background: var(--color-primary) !important;
+}
+
+/* 체크박스 */
+.ant-checkbox-checked .ant-checkbox-inner {
+  background-color: var(--color-primary) !important;
+  border-color:     var(--color-primary) !important;
+}
+
+/* 스위치 활성 */
+.ant-switch-checked {
+  background-color: var(--color-primary) !important;
+}
+
+/* 링크 */
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--color-primary-hover);
+}
+
+/* 스크롤바 (webkit) */
+::-webkit-scrollbar        { width: 8px; height: 8px; }
+::-webkit-scrollbar-track  { background: var(--color-bg-secondary); }
+::-webkit-scrollbar-thumb  { background: var(--color-border); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-text-muted); }

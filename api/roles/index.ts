@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabaseAdmin } from '../../../lib/supabaseClient';
-import { withAuth } from '../../../lib/authMiddleware';
-import { withRole } from '../../../lib/checkRole';
-import { successResponse, errorResponse } from '../../../lib/errorCodes';
+import { supabaseAdmin } from '../../lib/supabaseClient';
+import { withAuth } from '../../lib/authMiddleware';
+import { withRole } from '../../lib/checkRole';
+import { successResponse, errorResponse } from '../../lib/errorCodes';
 
 async function handler(req: VercelRequest, res: VercelResponse) {
   // GET /api/roles
@@ -15,14 +15,14 @@ async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json(successResponse(data));
   }
 
-  // POST /api/roles (SUPER_ADMIN 전용)
+  // POST /api/roles (SUPER_ADMIN ?�용)
   if (req.method === 'POST') {
     const { role_cd, role_nm, role_desc, role_color, sort_order } = req.body;
     if (!role_cd || !role_nm) {
-      return res.status(400).json(errorResponse('MISSING_FIELD', 'role_cd, role_nm 필수'));
+      return res.status(400).json(errorResponse('MISSING_FIELD', 'role_cd, role_nm ?�수'));
     }
     if (!/^[A-Z_]+$/.test(role_cd)) {
-      return res.status(400).json(errorResponse('INVALID_FORMAT', 'role_cd는 대문자와 _ 만 허용'));
+      return res.status(400).json(errorResponse('INVALID_FORMAT', 'role_cd???�문자?� _ �??�용'));
     }
 
     const { data, error } = await supabaseAdmin
@@ -35,7 +35,7 @@ async function handler(req: VercelRequest, res: VercelResponse) {
       const code = error.code === '23505' ? 'DUPLICATE' : 'DB_ERROR';
       return res.status(error.code === '23505' ? 409 : 500).json(errorResponse(code, error.message));
     }
-    return res.status(201).json(successResponse(data, 'Role이 생성되었습니다.'));
+    return res.status(201).json(successResponse(data, 'Role???�성?�었?�니??'));
   }
 
   return res.status(405).json(errorResponse('SERVER_ERROR', 'Method Not Allowed'));

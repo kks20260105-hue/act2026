@@ -41,8 +41,41 @@ const App: React.FC = () => {
           locale={koKR}
           theme={{
             token: {
-              colorPrimary: '#1677ff',
-              borderRadius: 6,
+              colorPrimary:       '#595959',
+              colorLink:          '#595959',
+              colorLinkHover:     '#333333',
+              colorBgContainer:   '#ffffff',
+              colorBorder:        '#d0d0d0',
+              colorBorderSecondary: '#e8e8e8',
+              colorText:          '#1a1a1a',
+              colorTextSecondary: '#4a4a4a',
+              colorTextPlaceholder: '#aaaaaa',
+              colorFillSecondary: '#f5f5f5',
+              colorBgLayout:      '#f0f0f0',
+              borderRadius:       4,
+              borderRadiusLG:     6,
+              fontSize:           13,
+              fontFamily:         "'Pretendard', 'Malgun Gothic', '맑은 고딕', 'Apple SD Gothic Neo', sans-serif",
+            },
+            components: {
+              Button: {
+                colorPrimary:       '#595959',
+                colorPrimaryHover:  '#333333',
+                colorPrimaryActive: '#1a1a1a',
+                defaultBorderColor: '#d0d0d0',
+                defaultColor:       '#1a1a1a',
+              },
+              Menu: {
+                darkItemBg:             '#1a1a1a',
+                darkItemSelectedBg:     '#595959',
+                darkItemHoverBg:        '#333333',
+                darkItemSelectedColor:  '#ffffff',
+              },
+              Table: {
+                headerBg:           '#f5f5f5',
+                headerColor:        '#1a1a1a',
+                rowHoverBg:         '#fafafa',
+              },
             },
           }}
         >

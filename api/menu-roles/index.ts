@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabaseAdmin } from '../../../lib/supabaseClient';
-import { withAuth } from '../../../lib/authMiddleware';
-import { withRole } from '../../../lib/checkRole';
-import { successResponse, errorResponse } from '../../../lib/errorCodes';
+import { supabaseAdmin } from '../../lib/supabaseClient';
+import { withAuth } from '../../lib/authMiddleware';
+import { withRole } from '../../lib/checkRole';
+import { successResponse, errorResponse } from '../../lib/errorCodes';
 
 async function handler(req: VercelRequest, res: VercelResponse) {
   // GET /api/menu-roles?menu_id=xxx
@@ -19,11 +19,11 @@ async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json(successResponse(data));
   }
 
-  // POST /api/menu-roles → 단일 매핑 추가
+  // POST /api/menu-roles ???�일 매핑 추�?
   if (req.method === 'POST') {
     const { menu_id, role_id, read_yn, write_yn } = req.body;
     if (!menu_id || !role_id) {
-      return res.status(400).json(errorResponse('MISSING_FIELD', 'menu_id, role_id 필수'));
+      return res.status(400).json(errorResponse('MISSING_FIELD', 'menu_id, role_id ?�수'));
     }
 
     const { data, error } = await supabaseAdmin
@@ -36,16 +36,16 @@ async function handler(req: VercelRequest, res: VercelResponse) {
       const code = error.code === '23505' ? 'DUPLICATE' : 'DB_ERROR';
       return res.status(error.code === '23505' ? 409 : 500).json(errorResponse(code, error.message));
     }
-    return res.status(201).json(successResponse(data, '매핑이 추가되었습니다.'));
+    return res.status(201).json(successResponse(data, '매핑??추�??�었?�니??'));
   }
 
   // DELETE /api/menu-roles?id=xxx
   if (req.method === 'DELETE') {
     const { id } = req.query;
-    if (!id) return res.status(400).json(errorResponse('MISSING_FIELD', 'id 필수'));
+    if (!id) return res.status(400).json(errorResponse('MISSING_FIELD', 'id ?�수'));
     const { error } = await supabaseAdmin.from('tb_menu_role').delete().eq('id', id as string);
     if (error) return res.status(500).json(errorResponse('DB_ERROR', error.message));
-    return res.status(200).json(successResponse(null, '매핑이 삭제되었습니다.'));
+    return res.status(200).json(successResponse(null, '매핑????��?�었?�니??'));
   }
 
   return res.status(405).json(errorResponse('SERVER_ERROR', 'Method Not Allowed'));
