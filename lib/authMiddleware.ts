@@ -1,5 +1,10 @@
-import type { VercelRequest, VercelResponse, VercelApiHandler } from '@vercel/node';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { supabaseAdmin } from './supabaseClient';
+
+export type ApiHandler = (
+  req: VercelRequest,
+  res: VercelResponse
+) => void | VercelResponse | Promise<void | VercelResponse>;
 
 export interface AuthedUser {
   id: string;
@@ -18,7 +23,7 @@ declare global {
  * 미들웨어: Authorization 헤더의 Bearer 토큰을 검증하고
  * req.user를 설정합니다.
  */
-export function withAuth(handler: VercelApiHandler) {
+export function withAuth(handler: ApiHandler): ApiHandler {
   return async (req: VercelRequest, res: VercelResponse) => {
     const authHeader = req.headers['authorization'] || '';
     const token = authHeader.replace('Bearer ', '').trim();

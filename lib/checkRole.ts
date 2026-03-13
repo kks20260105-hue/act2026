@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { ApiHandler } from './authMiddleware';
 import { supabaseAdmin } from './supabaseClient';
 
 export type RoleCode = 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'USER';
@@ -28,8 +29,8 @@ export async function getUserRoles(userId: string): Promise<RoleCode[]> {
  */
 export function withRole(
   requiredRoles: RoleCode[],
-  handler: (req: VercelRequest, res: VercelResponse) => Promise<void>
-) {
+  handler: ApiHandler
+): ApiHandler {
   return async (req: VercelRequest, res: VercelResponse) => {
     const user = (req as any).user;
     if (!user) {
