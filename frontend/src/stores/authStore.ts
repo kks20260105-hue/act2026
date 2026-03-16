@@ -43,6 +43,11 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name:    'auth-store',
+      version: 2,  // 버전 변경 시 localStorage 이전 데이터 자동 초기화
+      migrate: (_state, _version) => {
+        // 구버전 데이터는 버리고 초기값으로 리셋
+        return { user: null, accessToken: null, roles: [] };
+      },
       partialize: (state) => ({
         user:        state.user,
         accessToken: state.accessToken,

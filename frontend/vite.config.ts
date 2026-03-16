@@ -17,6 +17,7 @@ export default defineConfig(({ mode }) => {
 
     server: {
       port: 3000,
+      strictPort: true,   // 3000 포트 점유 시 자동 증가 방지
       host: '0.0.0.0',   // IPv4 + IPv6 모두 바인딩
 
       // 개발환경에서만 프록시 사용

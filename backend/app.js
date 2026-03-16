@@ -9,8 +9,12 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 
 // 라우터 임포트
-const userRoutes = require('./routes/userRoutes');
-const postRoutes = require('./routes/postRoutes');
+const userRoutes     = require('./routes/userRoutes');
+const postRoutes     = require('./routes/postRoutes');
+const menuRoutes     = require('./routes/menuRoutes');
+const roleRoutes     = require('./routes/roleRoutes');
+const menuRoleRoutes = require('./routes/menuRoleRoutes');
+const userRoleRoutes = require('./routes/userRoleRoutes');
 
 const app = express();
 
@@ -59,6 +63,10 @@ app.get('/health', (req, res) => {
 // ─────────────────────────────────────────────
 app.use('/api/users', apiLimiter, userRoutes);
 app.use('/api/posts', apiLimiter, postRoutes);
+app.use('/api/menus', apiLimiter, menuRoutes);
+app.use('/api/roles', apiLimiter, roleRoutes);
+app.use('/api/menu-roles', apiLimiter, menuRoleRoutes);
+app.use('/api/users/:userId/roles', apiLimiter, userRoleRoutes);
 
 // Auth 라우터는 authLimiter 적용
 const authRoutes = require('./routes/authRoutes');

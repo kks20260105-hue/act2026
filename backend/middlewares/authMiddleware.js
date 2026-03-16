@@ -25,6 +25,7 @@ const verifyToken = async (req, res, next) => {
       id:       decoded.id,
       email:    decoded.email,
       username: decoded.username,
+      roles:    decoded.roles ?? [],   // roles 포함 (sharedAuth.js에서 발급)
     };
     return next();
   } catch (err) {
