@@ -1,5 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabaseAdmin } from './supabaseClient';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'portal-secret-key-2026';
 
 export type ApiHandler = (
   req: VercelRequest,
@@ -9,6 +11,7 @@ export type ApiHandler = (
 export interface AuthedUser {
   id: string;
   email: string;
+  roles?: string[];
 }
 
 declare global {
@@ -20,8 +23,8 @@ declare global {
 }
 
 /**
- * 미들웨어: Authorization 헤더의 Bearer 토큰을 검증하고
- * req.user를 설정합니다.
+ * 미들웨어: Authorization 헤더의 Bearer JWT를 검증하고
+ * req.user를 설정합니다. (custom JWT, jsonwebtoken)
  */
 export function withAuth(handler: ApiHandler): ApiHandler {
   return async (req: VercelRequest, res: VercelResponse) => {
@@ -32,12 +35,12 @@ export function withAuth(handler: ApiHandler): ApiHandler {
       return res.status(401).json({ code: 'UNAUTHORIZED', message: '토큰이 없습니다.' });
     }
 
-    const { data, error } = await supabaseAdmin.auth.getUser(token);
-    if (error || !data.user) {
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as any;
+      (req as any).user = { id: decoded.id, email: decoded.email, roles: decoded.roles ?? [] };
+      return handler(req, res);
+    } catch {
       return res.status(401).json({ code: 'INVALID_TOKEN', message: '유효하지 않은 토큰입니다.' });
     }
-
-    (req as any).user = { id: data.user.id, email: data.user.email! };
-    return handler(req, res);
   };
 }
