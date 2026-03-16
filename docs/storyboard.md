@@ -2,8 +2,6 @@
 
 > **프로젝트명**: KKS 엔터프라이즈 포털  
 > **버전**: v1.0  
-> **작성일**: 2026-03-13  
-> **작성자**: 시니어 UX 기획자  
 > **기술스택**: React 18 + TypeScript / Node.js Serverless (Vercel) / Supabase PostgreSQL + Auth + RLS / SheetJS
 
 ---
