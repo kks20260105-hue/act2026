@@ -29,6 +29,9 @@ export const useAuthStore = create<AuthState>()(
 
       hasRole: (role) => {
         const { roles } = get();
+        // ── 디버그 로그 ──────────────────────────────
+        console.log('[authStore] hasRole 호출 → 저장된 roles:', roles, '| 요청 role:', role);
+        // ──────────────────────────────────────────────
         if (Array.isArray(role)) return role.some((r) => roles.includes(r));
         return roles.includes(role);
       },

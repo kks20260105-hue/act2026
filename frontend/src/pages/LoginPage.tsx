@@ -41,7 +41,17 @@ const LoginPage: React.FC = () => {
 
       if (!res.ok) throw new Error(json.message ?? '로그인에 실패했습니다.');
       const { user, accessToken } = json.data ?? json;
-      // 백엔드 응답: { id, email, username, displayName }
+
+      // ── 디버그 로그 ──────────────────────────────
+      console.group('[Login] 로그인 응답');
+      console.log('✅ HTTP Status:', res.status);
+      console.log('📦 json.data:', json.data);
+      console.log('👤 user:', user);
+      console.log('🎫 accessToken:', accessToken ? accessToken.substring(0, 30) + '...' : 'NONE');
+      console.log('🔑 user.roles:', user?.roles);
+      console.groupEnd();
+      // ──────────────────────────────────────────────
+
       setUser(
         { id: user.id, email: user.email, nickname: user.username ?? user.nickname ?? '' },
         accessToken,
