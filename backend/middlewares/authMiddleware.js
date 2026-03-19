@@ -25,6 +25,7 @@ const verifyToken = async (req, res, next) => {
       id:       decoded.id,
       email:    decoded.email,
       username: decoded.username,
+      provider: decoded.provider,
       roles:    decoded.roles ?? [],   // roles 포함 (sharedAuth.js에서 발급)
     };
     return next();
@@ -33,4 +34,37 @@ const verifyToken = async (req, res, next) => {
   }
 };
 
-module.exports = { verifyToken };
+/**
+ * verifyTokenForLogout 미들웨어
+ * 로그아웃 전용: 만료된 토큰이어도 user_id 추출 후 통과 (ignoreExpiration)
+ */
+const verifyTokenForLogout = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      // 토큰 없어도 로그아웃은 허용 (프론트 콜리어 목적)
+      req.user = null;
+      return next();
+    }
+
+    const token = authHeader.split(' ')[1];
+    try {
+      // ignoreExpiration: true → 만료된 토큰에서도 user_id 추출
+      const decoded = jwt.verify(token, JWT_SECRET, { ignoreExpiration: true });
+      req.user = {
+        id:       decoded.id,
+        email:    decoded.email,
+        provider: decoded.provider,
+        roles:    decoded.roles ?? [],
+      };
+    } catch (_) {
+      req.user = null;
+    }
+    return next();
+  } catch (err) {
+    req.user = null;
+    return next();
+  }
+};
+
+module.exports = { verifyToken, verifyTokenForLogout };

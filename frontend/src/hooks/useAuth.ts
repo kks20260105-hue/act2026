@@ -1,4 +1,5 @@
 import { useAuthStore } from '../stores/authStore';
+import { authService } from '../services/authService';
 import type { RoleCode } from '../types/role';
 
 /**
@@ -11,6 +12,12 @@ export function useAuth() {
 
   const checkRole = (required: RoleCode | RoleCode[]) => hasRole(required);
 
+  /** 로그아웃: 백엔드 소셜 토큰 폐기 → localStorage 초기화 → 스토어 클리어 */
+  const logout = async () => {
+    await authService.logout();  // 백엔드 토큰 폐기 + localStorage 삭제
+    clearUser();                 // Zustand 상태 초기화
+  };
+
   return {
     user,
     accessToken,
@@ -18,6 +25,6 @@ export function useAuth() {
     isLoggedIn,
     isAdmin: isAdmin(),
     checkRole,
-    logout: clearUser,
+    logout,
   };
 }

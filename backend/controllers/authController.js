@@ -44,11 +44,19 @@ const authController = {
         try {
           const admin = getSupabaseAdmin();
           const { data: userRows } = await admin.rpc('uf_get_user_by_email', { p_email: email });
-          const userId = userRows?.[0]?.id ?? null;
-          if (userId) {
-            await admin.rpc('up_insert_login_log', {
-              p_user_id: userId, p_ip: ip, p_agent: userAgent, p_success: false,
-            });
+          const failUser = userRows?.[0] ?? null;
+          if (failUser?.id) {
+            admin.rpc('uf_insert_login_log', {
+              p_user_id:    failUser.id,
+              p_provider:   failUser.provider ?? 'local',
+              p_email:      email,
+              p_name:       failUser.name ?? null,
+              p_ip:         ip,
+              p_user_agent: userAgent,
+              p_status:     'fail',
+              p_fail_reason: result.message ?? '로그인 실패',
+              p_extra_json: JSON.stringify({ action: 'login', reason: result.message }),
+            }).catch(() => {});
           }
         } catch (_) { /* 로그 실패는 무시 */ }
 
@@ -65,9 +73,19 @@ const authController = {
       // 로그인 성공 로그
       try {
         const admin = getSupabaseAdmin();
-        await admin.rpc('up_insert_login_log', {
-          p_user_id: result.data.user.id, p_ip: ip, p_agent: userAgent, p_success: true,
-        });
+        admin.rpc('uf_insert_login_log', {
+          p_user_id:    result.data.user.id,
+          p_provider:   result.data.user.provider ?? 'local',
+          p_email:      result.data.user.email ?? null,
+          p_name:       result.data.user.name   ?? null,
+          p_ip:         ip,
+          p_user_agent: userAgent,
+          p_status:     'success',
+          p_extra_json: JSON.stringify({
+            action: 'login',
+            roles:  result.data.user.roles ?? [],
+          }),
+        }).catch(() => {});
       } catch (_) { /* 로그 실패는 무시 */ }
 
       return res.json({ success: true, data: result.data });
@@ -80,11 +98,81 @@ const authController = {
 
   /**
    * POST /api/auth/logout
+   * - 소셜 로그인(네이버 등) access_token 폐기
+   * - user_login_logs에 logout 이력 기록
    */
   logout: async (req, res, next) => {
     try {
+      const userId = req.user?.id ?? null;
+      console.log('[logout] 요청 user_id:', userId, '| provider:', req.user?.provider);
+
+      if (userId) {
+        const admin = getSupabaseAdmin();
+
+        // ① 소셜 토큰 조회 (await)
+        const { data: tokenRows, error: tokenQueryErr } = await admin
+          .rpc('uf_get_user_social_token', { p_user_id: userId });
+
+        if (tokenQueryErr) {
+          console.error('[logout] 토큰 조회 RPC 오류:', tokenQueryErr.message, '| code:', tokenQueryErr.code);
+        }
+
+        const row = tokenRows?.[0];
+        console.log('[logout] 토큰 조회 결과 → provider:', row?.provider, '| token 있음:', !!row?.social_access_token);
+
+        // ② 네이버 토큰 폐기 (await)
+        if (row?.provider === 'naver' && row?.social_access_token) {
+          const revokeUrl = new URL('https://nid.naver.com/oauth2.0/token');
+          revokeUrl.searchParams.set('grant_type',       'delete');
+          revokeUrl.searchParams.set('client_id',        process.env.NAVER_CLIENT_ID);
+          revokeUrl.searchParams.set('client_secret',    process.env.NAVER_CLIENT_SECRET);
+          revokeUrl.searchParams.set('access_token',     row.social_access_token);
+          revokeUrl.searchParams.set('service_provider', 'NAVER');
+
+          try {
+            const revokeRes  = await fetch(revokeUrl.toString());
+            const revokeJson = await revokeRes.json();
+            console.log('[logout] 네이버 토큰 폐기 결과:', JSON.stringify(revokeJson));
+          } catch (revokeErr) {
+            console.error('[logout] 네이버 토큰 폐기 HTTP 오류:', revokeErr.message);
+          }
+
+          // ③ DB 토큰 null 처리 (await)
+          const { error: clearErr } = await admin.rpc('uf_update_social_token', {
+            p_user_id:      userId,
+            p_access_token: null,
+          });
+          if (clearErr) {
+            console.error('[logout] DB 토큰 삭제 실패:', clearErr.message, '| code:', clearErr.code);
+          } else {
+            console.log('[logout] ✅ DB social_access_token → null 완료');
+          }
+        } else if (row?.provider === 'naver' && !row?.social_access_token) {
+          console.warn('[logout] 네이버 유저인데 social_access_token이 이미 null (로그인 시 저장 실패 가능성)');
+        }
+
+        // ④ 로그아웃 이력 기록 (비동기 - 실패해도 무관)
+        admin.rpc('uf_insert_login_log', {
+          p_user_id:     userId,
+          p_provider:    row?.provider ?? 'unknown',
+          p_email:       req.user?.email ?? null,
+          p_name:        req.user?.name  ?? null,
+          p_ip:          req.ip ?? req.headers?.['x-forwarded-for'] ?? null,
+          p_user_agent:  req.headers?.['user-agent'] ?? null,
+          p_status:      'success',
+          p_fail_reason: 'logout',
+          p_extra_json:  JSON.stringify({
+            action:  'logout',
+            revoked: row?.provider === 'naver' && !!row?.social_access_token,
+          }),
+        }).catch((e) => console.warn('[logout] login_log 기록 실패:', e.message));
+      } else {
+        console.warn('[logout] user_id 없음 → 토큰 폐기 건너뜀');
+      }
+
       return res.json({ success: true, message: '로그아웃되었습니다.' });
     } catch (err) {
+      console.error('[logout] 예외 발생:', err.message);
       next(err);
     }
   },
@@ -94,6 +182,60 @@ const authController = {
    */
   getMe: async (req, res) => {
     return res.json({ success: true, data: req.user });
+  },
+
+  /**
+   * POST /api/auth/register - 일반 사번 등록 (회원가입)
+   * → 기존 public.users 테이블에 통합 저장 (별도 테이블 X)
+   * → uf_register_employee RPC 사용 (이메일/사번 중복 체크 + INSERT)
+   * → status='pending' : 관리자 승인 후 is_active=true 처리
+   */
+  register: async (req, res, next) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ success: false, errors: errors.array() });
+      }
+
+      const { employeeId, name, email, department, position, password } = req.body;
+
+      // bcrypt 해싱 (백엔드에서 처리, DB에는 해시만 저장)
+      const bcrypt = require('bcryptjs');
+      const hashedPassword = await bcrypt.hash(password, 12);
+
+      const admin = getSupabaseAdmin();
+
+      // uf_register_employee RPC: public.users 에 직접 INSERT
+      // (이메일/사번 중복 체크 포함)
+      const { data: result, error } = await admin.rpc('uf_register_employee', {
+        p_employee_id: employeeId,
+        p_name:        name,
+        p_email:       email,
+        p_department:  department ?? null,
+        p_position:    position   ?? null,
+        p_password:    hashedPassword,
+      });
+
+      if (error) {
+        console.error('[register] RPC 오류:', error.message);
+        return res.status(500).json({ success: false, message: '회원가입 처리 중 오류가 발생했습니다.' });
+      }
+
+      // RPC 반환값: { ok, message?, id?, status? }
+      if (!result?.ok) {
+        return res.status(409).json({ success: false, message: result?.message ?? '가입에 실패했습니다.' });
+      }
+
+      console.log(`[register] ✅ 신규 사번 등록: ${name} (${employeeId}) → public.users`);
+      return res.status(201).json({
+        success: true,
+        message: '가입 신청이 완료되었습니다. 관리자 승인 후 로그인하실 수 있습니다.',
+        data:    { id: result.id, name, status: result.status },
+      });
+    } catch (err) {
+      console.error('[register] 예외 발생:', err.message);
+      next(err);
+    }
   },
 };
 

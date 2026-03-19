@@ -18,8 +18,7 @@ export default function GNBLayout() {
   const gnbMenus = myMenus.filter((m) => m.menu_depth === 1);
 
   const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
-    logout();
+    await logout();   // 백엔드 토큰 폐기 + localStorage 초기화 + 스토어 클리어
     navigate('/login');
   };
 

@@ -50,9 +50,24 @@ export const authService = {
 
   /**
    * 로그아웃 처리
+   * 1. 백엔드에 POST /api/auth/logout → 소셜 access_token 폐기
+   * 2. localStorage 완전 초기화 (토큰, 유저, Zustand persist)
    */
   logout: async (): Promise<void> => {
-    const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+    // portal_access_token (일반로그인) 또는 auth-store (OAuth로그인) 에서 토큰 읽기
+    let token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+
+    // 폴백: Zustand auth-store에서 추출
+    if (!token) {
+      try {
+        const raw = localStorage.getItem('auth-store');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          token = parsed?.state?.accessToken ?? null;
+        }
+      } catch (_) { /* 무시 */ }
+    }
+
     try {
       if (token) {
         await axios.post(
@@ -60,9 +75,18 @@ export const authService = {
           {},
           { headers: { Authorization: `Bearer ${token}` } }
         );
+      } else {
+        console.warn('[AuthService] 로그아웃: 토큰 없음 → 백엔드 토큰 폐기 생략');
       }
     } catch (err) {
       console.warn('[AuthService] 로그아웃 API 오류 (무시):', err);
+    } finally {
+      // 토큰·유저 정보 완전 삭제
+      localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.USER);
+      // Zustand persist 스토어 초기화 (auth-store)
+      localStorage.removeItem('auth-store');
+      sessionStorage.clear();
     }
   },
 

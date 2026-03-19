@@ -23,9 +23,20 @@ const app = express();
 // ─────────────────────────────────────────────
 app.use(helmet());
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+// 허용 origin 목록 (쉼표 구분 또는 기본값)
+const ALLOWED_ORIGINS = (
+  process.env.CORS_ORIGIN ||
+  'http://localhost:3000,https://act2026.vercel.app'
+).split(',').map((o) => o.trim());
+
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+    origin: (origin, callback) => {
+      // origin이 없는 경우(서버 간 요청 등) 허용
+      if (!origin) return callback(null, true);
+      if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+      callback(new Error(`CORS 차단: ${origin}`));
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -33,6 +44,12 @@ app.use(
 );
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// ─────────────────────────────────────────────
+// Passport 초기화 (소셜 OAuth)
+// ─────────────────────────────────────────────
+const passport = require('./config/passport');
+app.use(passport.initialize());
 
 // ─────────────────────────────────────────────
 // Rate Limiting (API 요청 제한)
@@ -47,8 +64,13 @@ const apiLimiter = rateLimit({
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15분
-  max: 10, // 로그인 시도 10회 제한
+  max: 20, // 로그인 폼 시도 20회 제한 (테스트 여유분 포함)
   message: { success: false, message: '로그인 시도 횟수를 초과했습니다. 15분 후 다시 시도하세요.' },
+  skip: (req) => {
+    // OAuth 라우트 (naver, kakao, google 및 콜백)는 rate limit 제외
+    const oauthPaths = ['/naver', '/naver-callback', '/kakao', '/kakao-callback', '/google', '/google-callback'];
+    return oauthPaths.some((p) => req.path === p);
+  },
 });
 
 // ─────────────────────────────────────────────

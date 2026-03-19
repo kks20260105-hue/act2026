@@ -5,8 +5,11 @@ import RoleRoute      from './RoleRoute';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
 // Lazy load pages
-const LoginPage        = lazy(() => import('../pages/LoginPage'));
-const HomePage         = lazy(() => import('../pages/HomePage'));
+const LoginPage          = lazy(() => import('../pages/LoginPage'));
+const RegisterPage       = lazy(() => import('../pages/RegisterPage'));
+const SocialRegisterPage = lazy(() => import('../pages/SocialRegisterPage'));
+const OAuthCallbackPage  = lazy(() => import('../pages/OAuthCallbackPage'));
+const HomePage           = lazy(() => import('../pages/HomePage'));
 const ForbiddenPage    = lazy(() => import('../pages/ForbiddenPage'));
 const NotFoundPage     = lazy(() => import('../pages/NotFoundPage'));
 const MenuManagePage   = lazy(() => import('../pages/admin/MenuManagePage'));
@@ -21,6 +24,18 @@ const router = createBrowserRouter([
   {
     path:    '/login',
     element: <Suspense fallback={<Loading />}><LoginPage /></Suspense>,
+  },
+  {
+    path:    '/register',
+    element: <Suspense fallback={<Loading />}><RegisterPage /></Suspense>,
+  },
+  {
+    path:    '/register/social',
+    element: <Suspense fallback={<Loading />}><SocialRegisterPage /></Suspense>,
+  },
+  {
+    path:    '/oauth/callback',
+    element: <Suspense fallback={<Loading />}><OAuthCallbackPage /></Suspense>,
   },
   {
     path:    '/forbidden',
