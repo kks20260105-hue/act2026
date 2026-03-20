@@ -1,0 +1,62 @@
+cd c:\GitHubDev1\kks202601-root\backend; node server.js
+cd c:\GitHubDev1\kks202601-root\frontend; npm run dev
+
+
+현재 변경 사항을 확인하고 GitHub에 푸시
+git add -A ; git commit -m "2026.03.20 22시10_fix: 카카오로그인 이메일 미제공 시 가상 이메일(kakao_id@kakao.com) 자동 생성 및 DB 갱신 로직 수정"
+git push origin main
+
+
+Vercel CLI로 직접 배포합니다.
+npx vercel --version 2>$null; vercel --version 2>$null
+vercel --prod --yes 2>&1
+
+
+
+git remote set-url origin https://github.com/kks20260105-hue/act2026.git; 
+git remote -v
+git push -u origin main --force 2>&1
+
+
+git push -u origin main 2>&1
+
+//저장소 생성 시 README가 자동 생성된 것 같습니다. 강제 push합니다.
+git push -u origin main --force 2>&1
+
+
+https://github.com/kks20260105-hue/act2026 에서 코드 확인 가능합니다.
+
+
+###1번###
+SUPABASE_URL=https://hqyfkgwyblncdohrrgii.supabase.co
+###2번###
+SUPABASE_SERVICE_KEY=<Supabase_Service_Key>
+###3번###
+DATABASE_URL=postgresql://postgres:<password>@db.hqyfkgwyblncdohrrgii.supabase.co:5432/postgres
+###4번###
+CORS_ORIGIN=https://act2026.vercel.app
+# JWT 설정
+###5번=========================###
+JWT_SECRET=<JWT_Secret_Key>
+###6번=========================###
+JWT_EXPIRES=8h
+###7번=========================###
+FRONTEND_URL=https://act2026.vercel.app
+###8번=========================###
+NAVER_CLIENT_ID=mc3AkAFYg31kNmo4EOqi
+###9번=========================###
+NAVER_CLIENT_SECRET=<Naver_Client_Secret>
+###10번=========================###
+NAVER_CALLBACK_URL=https://act2026.vercel.app/api/auth/naver-callback
+
+
+###11번=========================###
+KAKAO_CLIENT_ID=<Kakao_Client_ID>
+###12번=========================###
+KAKAO_CLIENT_SECRET=<Kakao_Client_Secret>
+
+###13번=========================###
+KAKAO_CALLBACK_URL=https://act2026.vercel.app/api/auth/
+###14번=========================###kakao-callback
+KAKAO_CALLBACK_URL=http://localhost:4000/api/auth/kakao-callback
+
