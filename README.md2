@@ -2,6 +2,12 @@ cd c:\GitHubDev1\kks202601-root\backend; node server.js
 cd c:\GitHubDev1\kks202601-root\frontend; npm run dev
 
 
+https://vercel.com/kks20260105-3914s-projects
+
+https://supabase.com/dashboard/org/yokkarmkygaihynhrelk
+
+
+
 현재 변경 사항을 확인하고 GitHub에 푸시
 git add -A ; git commit -m "2026.03.20 22시10_fix: 카카오로그인 이메일 미제공 시 가상 이메일(kakao_id@kakao.com) 자동 생성 및 DB 갱신 로직 수정"
 git push origin main
