@@ -79,6 +79,8 @@ router.post(
 
 // ─────────────────────────────────────────────
 // 소셜 OAuth 라우트 (네이버)
+// 모든 로그인 시도는 항상 네이버 OAuth를 통해 처리
+// → 네이버가 자체적으로 동의 이력을 관리 (1회 동의 후 얰소, 철회 시 재동의)
 // ─────────────────────────────────────────────
 router.get('/naver', (req, res, next) => {
   if (!process.env.NAVER_CLIENT_ID) {
@@ -120,7 +122,7 @@ router.get('/kakao-callback', (req, res, next) => {
   })(req, res, next);
 }, (req, res) => {
   const token = generateToken(req.user);
-  res.redirect(`${getFrontendUrl(req)}/oauth/callback?token=${token}&provider=카카오`);
+  res.redirect(`${getFrontendUrl(req)}/oauth/callback?token=${encodeURIComponent(token)}&provider=${encodeURIComponent('카카오')}`);
 });
 
 // ─────────────────────────────────────────────
@@ -143,7 +145,7 @@ router.get('/google-callback', (req, res, next) => {
   })(req, res, next);
 }, (req, res) => {
   const token = generateToken(req.user);
-  res.redirect(`${getFrontendUrl(req)}/oauth/callback?token=${token}&provider=Google`);
+  res.redirect(`${getFrontendUrl(req)}/oauth/callback?token=${encodeURIComponent(token)}&provider=${encodeURIComponent('Google')}`);
 });
 
 module.exports = router;

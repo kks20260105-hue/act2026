@@ -3,6 +3,8 @@
  *
  * GET  /api/auth/naver           → 네이버 OAuth 시작 (Naver로 리다이렉트)
  * GET  /api/auth/naver-callback  → 네이버 OAuth 콜백 (토큰 教환 + Supabase upsert + JWT)
+ * GET  /api/auth/google          → Google OAuth 시작
+ * GET  /api/auth/google-callback → Google OAuth 콜백 처리
  * POST /api/auth/login           → 일반 이메일/비밀번호 로그인
  * POST /api/auth/logout          → 로그아웃
  * GET  /api/auth/me              → 내 정보 조회
@@ -107,6 +109,9 @@ module.exports = async (req, res) => {
       return res.status(503).json({ success: false, message: '네이버 로그인이 아직 설정되지 않았습니다.' });
     }
 
+    // 항상 네이버 OAuth를 통과 → 네이버가 동의 이력을 직접 관리
+    // (검수 완료 후: 이미 동의한 사용자는 동의창 없이 자동 통과)
+    // (서비스 철회 시: 네이버가 동의창 재표시)
     // CSRF 방지용 state (HttpOnly 쿠키에 5분 저장)
     const state       = crypto.randomBytes(16).toString('hex');
     const callbackUrl = encodeURIComponent(`${getBaseUrl(req)}/api/auth/naver-callback`);
@@ -143,7 +148,7 @@ module.exports = async (req, res) => {
       console.warn('[naver-callback] state 불일치 savedState=%s, state=%s', savedState, state);
       return res.redirect(302, `${frontendUrl}/login?error=naver_state`);
     }
-    // state 쿠키 삭제
+    // state 쿠키 즉시 삭제
     res.setHeader('Set-Cookie', 'naver_oauth_state=; Path=/; HttpOnly; Max-Age=0');
 
     const clientId     = process.env.NAVER_CLIENT_ID;
@@ -261,6 +266,326 @@ module.exports = async (req, res) => {
     } catch (err) {
       console.error('[naver-callback] 예외 발생:', err.message);
       return res.redirect(302, `${getFrontendUrl(req)}/login?error=naver_server`);
+    }
+  }
+
+  // ═══════════════════════════════════════════
+  // GET /api/auth/google  →  Google OAuth 시작
+  // ═══════════════════════════════════════════
+  if (action === 'google') {
+    if (req.method !== 'GET') return res.status(405).end();
+
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      return res.status(503).json({ success: false, message: 'Google 로그인이 아직 설정되지 않았습니다.' });
+    }
+
+    const state       = crypto.randomBytes(16).toString('hex');
+    const callbackUrl = `${getBaseUrl(req)}/api/auth/google-callback`;
+    const googleUrl =
+      `https://accounts.google.com/o/oauth2/v2/auth` +
+      `?response_type=code` +
+      `&client_id=${encodeURIComponent(clientId)}` +
+      `&redirect_uri=${encodeURIComponent(callbackUrl)}` +
+      `&scope=${encodeURIComponent('openid email profile')}` +
+      `&state=${state}` +
+      `&access_type=offline` +
+      `&prompt=consent`;
+
+    res.setHeader('Set-Cookie',
+      `google_oauth_state=${state}; Path=/; HttpOnly; SameSite=Lax; Max-Age=300`);
+    return res.redirect(302, googleUrl);
+  }
+
+  // ═══════════════════════════════════════════
+  // GET /api/auth/google-callback  →  콜백 처리
+  // ═══════════════════════════════════════════
+  if (action === 'google-callback') {
+    if (req.method !== 'GET') return res.status(405).end();
+
+    const { code, state, error: googleError } = req.query;
+    const frontendUrl = getFrontendUrl(req);
+
+    if (googleError || !code) {
+      return res.redirect(302, `${frontendUrl}/login?error=google_denied`);
+    }
+
+    const cookieHeader = req.headers.cookie || '';
+    const savedState   = parseCookie(cookieHeader, 'google_oauth_state');
+    if (!savedState || savedState !== state) {
+      console.warn('[google-callback] state 불일치 savedState=%s, state=%s', savedState, state);
+      return res.redirect(302, `${frontendUrl}/login?error=google_state`);
+    }
+    res.setHeader('Set-Cookie', 'google_oauth_state=; Path=/; HttpOnly; Max-Age=0');
+
+    const clientId     = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+    if (!clientId || !clientSecret) {
+      return res.redirect(302, `${frontendUrl}/login?error=google_config`);
+    }
+
+    try {
+      const callbackUrl = `${getBaseUrl(req)}/api/auth/google-callback`;
+      const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          code: String(code),
+          client_id: clientId,
+          client_secret: clientSecret,
+          redirect_uri: callbackUrl,
+          grant_type: 'authorization_code',
+        }).toString(),
+      });
+      const tokenData = await tokenRes.json();
+
+      if (tokenData.error || !tokenData.access_token) {
+        console.error('[google-callback] 토큰 발급 실패:', tokenData);
+        return res.redirect(302, `${frontendUrl}/login?error=google_token`);
+      }
+
+      const profileRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
+      });
+      const googleUser = await profileRes.json();
+
+      if (!googleUser?.id) {
+        console.error('[google-callback] 프로필 조회 실패:', googleUser);
+        return res.redirect(302, `${frontendUrl}/login?error=google_profile`);
+      }
+
+      const nameValue  = googleUser.name || '';
+      const emailValue = googleUser.email || '';
+      const imgValue   = googleUser.picture || null;
+
+      const supabaseAdmin = getSupabaseAdmin();
+      const rpcParams = {
+        p_provider:      'google',
+        p_provider_id:   String(googleUser.id),
+        p_email:         emailValue,
+        p_name:          nameValue,
+        p_profile_image: imgValue,
+      };
+
+      const { data: rows, error: rpcError } = await supabaseAdmin.rpc('uf_upsert_social_user', rpcParams);
+
+      if (rpcError || !rows?.[0]) {
+        console.error('[google-callback] Supabase upsert 오류:', rpcError?.message, '| code:', rpcError?.code);
+        return res.redirect(302, `${frontendUrl}/login?error=google_db`);
+      }
+
+      const user = rows[0];
+
+      const { error: tokErr } = await supabaseAdmin.rpc('uf_update_social_token', {
+        p_user_id:      user.id,
+        p_access_token: tokenData.access_token,
+      });
+      if (tokErr) {
+        console.error('[google-callback] social_token 저장 실패:', tokErr.message, '| code:', tokErr.code);
+      }
+
+      const { data: roleData } = await supabaseAdmin
+        .from('tb_user_role')
+        .select('tb_role(role_cd)')
+        .eq('user_id', user.id);
+      const roles = (roleData ?? []).map((r) => r.tb_role?.role_cd).filter(Boolean);
+
+      supabaseAdmin.rpc('uf_insert_login_log', {
+        p_user_id:    user.id,
+        p_provider:   'google',
+        p_email:      user.email ?? null,
+        p_name:       user.name ?? nameValue ?? null,
+        p_ip:         req.headers['x-forwarded-for'] ?? req.socket?.remoteAddress ?? null,
+        p_user_agent: req.headers['user-agent'] ?? null,
+        p_status:     'success',
+        p_extra_json: JSON.stringify({
+          provider_id: googleUser.id,
+          google_email: emailValue,
+          has_name:    !!nameValue,
+          has_image:   !!imgValue,
+          token_saved: !tokErr,
+          roles,
+        }),
+      }).then(({ error: logErr }) => {
+        if (logErr) console.warn('[google-callback] login_log 삽입 실패:', logErr.message);
+      });
+
+      const token = generateJwt({ ...user, roles });
+      return res.redirect(302,
+        `${frontendUrl}/oauth/callback?token=${encodeURIComponent(token)}&provider=${encodeURIComponent('Google')}`
+      );
+    } catch (err) {
+      console.error('[google-callback] 예외 발생:', err.message);
+      return res.redirect(302, `${getFrontendUrl(req)}/login?error=google_server`);
+    }
+  }
+
+  // ═══════════════════════════════════════════
+  // GET /api/auth/kakao  →  카카오 OAuth 시작
+  // ═══════════════════════════════════════════
+  if (action === 'kakao') {
+    if (req.method !== 'GET') return res.status(405).end();
+
+    const clientId = process.env.KAKAO_CLIENT_ID;
+    if (!clientId) {
+      return res.status(503).json({ success: false, message: '카카오 로그인이 아직 설정되지 않았습니다.' });
+    }
+
+    // 항상 카카오 OAuth를 통과 → 카카오가 동의 이력을 직접 관리
+    const state       = crypto.randomBytes(16).toString('hex');
+    const callbackUrl = `${getBaseUrl(req)}/api/auth/kakao-callback`;
+    const kakaoUrl    =
+      `https://kauth.kakao.com/oauth/authorize` +
+      `?client_id=${clientId}` +
+      `&redirect_uri=${encodeURIComponent(callbackUrl)}` +
+      `&response_type=code` +
+      `&state=${state}`;
+
+    res.setHeader('Set-Cookie',
+      `kakao_oauth_state=${state}; Path=/; HttpOnly; SameSite=Lax; Max-Age=300`);
+    return res.redirect(302, kakaoUrl);
+  }
+
+  // ═══════════════════════════════════════════
+  // GET /api/auth/kakao-callback  →  콜백 처리
+  // ═══════════════════════════════════════════
+  if (action === 'kakao-callback') {
+    if (req.method !== 'GET') return res.status(405).end();
+
+    const { code, state, error: kakaoError } = req.query;
+    const frontendUrl = getFrontendUrl(req);
+
+    // 1. 카카오에서 error 파라미터를 보낸 경우 (access_denied 등)
+    if (kakaoError || !code) {
+      return res.redirect(302, `${frontendUrl}/login?error=kakao_denied`);
+    }
+
+    // 2. state 검증 (CSRF 방지)
+    const cookieHeader = req.headers.cookie || '';
+    const savedState   = parseCookie(cookieHeader, 'kakao_oauth_state');
+    if (!savedState || savedState !== state) {
+      console.warn('[kakao-callback] state 불일치 savedState=%s, state=%s', savedState, state);
+      return res.redirect(302, `${frontendUrl}/login?error=kakao_state`);
+    }
+    // state 쿠키 즉시 삭제
+    res.setHeader('Set-Cookie', 'kakao_oauth_state=; Path=/; HttpOnly; Max-Age=0');
+
+    const clientId     = process.env.KAKAO_CLIENT_ID;
+    const clientSecret = process.env.KAKAO_CLIENT_SECRET || '';
+
+    if (!clientId) {
+      return res.redirect(302, `${frontendUrl}/login?error=kakao_config`);
+    }
+
+    try {
+      // 3. 액세스 토큰 발급
+      const callbackUrl = `${getBaseUrl(req)}/api/auth/kakao-callback`;
+      const tokenRes  = await fetch('https://kauth.kakao.com/oauth/token', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type:   'authorization_code',
+          client_id:    clientId,
+          redirect_uri: callbackUrl,
+          code:         String(code),
+          ...(clientSecret ? { client_secret: clientSecret } : {}),
+        }).toString(),
+      });
+      const tokenData = await tokenRes.json();
+
+      if (tokenData.error || !tokenData.access_token) {
+        console.error('[kakao-callback] 토큰 발급 실패:', tokenData);
+        return res.redirect(302, `${frontendUrl}/login?error=kakao_token`);
+      }
+
+      // 4. 프로필 조회
+      const profileRes  = await fetch('https://kapi.kakao.com/v2/user/me', {
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
+      });
+      const kakaoUser = await profileRes.json();
+
+      if (!kakaoUser?.id) {
+        console.error('[kakao-callback] 프로필 조회 실패:', kakaoUser);
+        return res.redirect(302, `${frontendUrl}/login?error=kakao_profile`);
+      }
+
+      const nameValue  = kakaoUser.kakao_account?.profile?.nickname
+                      || kakaoUser.properties?.nickname
+                      || '';
+      const emailValue = kakaoUser.kakao_account?.email || '';
+      const imgValue   = kakaoUser.kakao_account?.profile?.profile_image_url
+                      || kakaoUser.properties?.profile_image
+                      || null;
+
+      console.log('[kakao-callback] ① 카카오 원본:\n', JSON.stringify(kakaoUser, null, 2));
+      console.log('[kakao-callback] ② 추출값 → name:', nameValue, '| email:', emailValue, '| img:', !!imgValue);
+
+      // 5. public.users에 소셜 사용자 upsert (uf_upsert_social_user RPC)
+      const supabaseAdmin = getSupabaseAdmin();
+      const rpcParams = {
+        p_provider:      'kakao',
+        p_provider_id:   String(kakaoUser.id),
+        p_email:         emailValue,
+        p_name:          nameValue,
+        p_profile_image: imgValue,
+      };
+      const { data: rows, error: rpcError } = await supabaseAdmin.rpc('uf_upsert_social_user', rpcParams);
+
+      if (rpcError || !rows?.[0]) {
+        console.error('[kakao-callback] Supabase upsert 오류:', rpcError?.message, '| code:', rpcError?.code);
+        return res.redirect(302, `${frontendUrl}/login?error=kakao_db`);
+      }
+
+      const user = rows[0];
+      console.log('[kakao-callback] ③ DB 저장 결과 → id:', user.id, '| name:', user.name, '| email:', user.email);
+
+      // 6. access_token DB 저장
+      const { error: tokErr } = await supabaseAdmin.rpc('uf_update_social_token', {
+        p_user_id:      user.id,
+        p_access_token: tokenData.access_token,
+      });
+      if (tokErr) {
+        console.error('[kakao-callback] ⚠️ social_token 저장 실패:', tokErr.message);
+      }
+
+      // 7. roles 조회
+      const { data: roleData } = await supabaseAdmin
+        .from('tb_user_role')
+        .select('tb_role(role_cd)')
+        .eq('user_id', user.id);
+      const roles = (roleData ?? []).map((r) => r.tb_role?.role_cd).filter(Boolean);
+
+      // 8. 로그인 이력 기록 (비동기)
+      supabaseAdmin.rpc('uf_insert_login_log', {
+        p_user_id:    user.id,
+        p_provider:   'kakao',
+        p_email:      user.email   ?? null,
+        p_name:       user.name    ?? nameValue ?? null,
+        p_ip:         req.headers['x-forwarded-for'] ?? req.socket?.remoteAddress ?? null,
+        p_user_agent: req.headers['user-agent'] ?? null,
+        p_status:     'success',
+        p_extra_json: JSON.stringify({
+          provider_id: String(kakaoUser.id),
+          kakao_email: emailValue,
+          has_name:    !!nameValue,
+          has_image:   !!imgValue,
+          token_saved: !tokErr,
+          roles,
+        }),
+      }).then(({ error: logErr }) => {
+        if (logErr) console.warn('[kakao-callback] login_log 삽입 실패:', logErr.message);
+      });
+
+      // 9. JWT 발급 → 프론트엔드로 리다이렉트
+      const token = generateJwt({ ...user, roles });
+      console.log('[kakao-callback] 로그인 성공:', user.name, '→', frontendUrl);
+      return res.redirect(302,
+        `${frontendUrl}/oauth/callback?token=${encodeURIComponent(token)}&provider=${encodeURIComponent('카카오')}`
+      );
+    } catch (err) {
+      console.error('[kakao-callback] 예외 발생:', err.message);
+      return res.redirect(302, `${getFrontendUrl(req)}/login?error=kakao_server`);
     }
   }
 

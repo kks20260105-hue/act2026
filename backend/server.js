@@ -2,7 +2,8 @@
  * server.js - 서버 진입점
  * 차후 .NET(ASP.NET Core) 마이그레이션 시 이 파일을 Program.cs로 대체
  */
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 const app = require('./app');
 
 const PORT = process.env.PORT || 4000;

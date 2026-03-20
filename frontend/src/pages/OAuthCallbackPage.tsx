@@ -3,7 +3,7 @@
  * 소셜 로그인(네이버/카카오/Google) 콜백 처리 페이지
  * URL: /oauth/callback?token=xxx&provider=naver|kakao|google
  */
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { App, Spin, Typography } from 'antd';
 import { useAuthStore } from '../stores/authStore';
@@ -15,8 +15,13 @@ const OAuthCallbackPage: React.FC = () => {
   const { message }       = App.useApp();
   const [searchParams]    = useSearchParams();
   const setUser           = useAuthStore((s) => s.setUser);
+  const processed         = useRef(false);
 
   useEffect(() => {
+    // StrictMode 에서 effect 가 두 번 실행되는 것을 방지
+    if (processed.current) return;
+    processed.current = true;
+
     const token    = searchParams.get('token');
     const error    = searchParams.get('error');
     const provider = searchParams.get('provider') ?? '소셜';

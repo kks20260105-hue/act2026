@@ -36,10 +36,23 @@ const handleSocialLogin = async (provider, profile, done, req, accessToken = nul
       console.log('[passport][naver] ② 추출값 → name:', JSON.stringify(name), '| email:', email, '| profileImage:', !!profileImage);
     } else if (provider === 'kakao') {
       email        = profile._json?.kakao_account?.email ?? '';
-      profileImage = profile._json?.properties?.profile_image ?? '';
+      name         = profile._json?.kakao_account?.profile?.nickname
+                  || profile._json?.properties?.nickname
+                  || profile.displayName
+                  || '';
+      profileImage = profile._json?.kakao_account?.profile?.profile_image_url
+                  || profile._json?.properties?.profile_image
+                  || '';
     } else if (provider === 'google') {
       email        = profile.emails?.[0]?.value ?? '';
       profileImage = profile.photos?.[0]?.value ?? '';
+    }
+
+    // ✅ 카카오 이메일 미제공 시 → kakao_id 기반 가상 이메일 자동 생성 후 기존 로직 그대로 진행
+    // 비즈 앱 심사 완료 후 카카오가 실 이메일을 제공하면 이 조건은 자동으로 스킵됩니다.
+    if (provider === 'kakao' && !email) {
+      email = `kakao_${providerId}@kakao.com`;
+      console.log('[passport][kakao] ⚠️ 이메일 미제공 → 가상 이메일 자동 생성:', email);
     }
 
     // ✅ public.users 에서 조회 or 자동 가입 (RPC 호출)
@@ -50,18 +63,33 @@ const handleSocialLogin = async (provider, profile, done, req, accessToken = nul
       p_name:          name,
       p_profile_image: profileImage || null,
     };
-    console.log('[passport][naver] ③ RPC 호출 파라미터:', JSON.stringify(rpcParams));
+    console.log('[passport] ③ RPC 호출 파라미터:', JSON.stringify(rpcParams));
 
     const { data: rows, error } = await admin.rpc('uf_upsert_social_user', rpcParams);
 
     if (error) {
-      console.error('[passport][naver] ④ RPC 오류:', error.message, '| code:', error.code, '| details:', error.details);
+      console.error('[passport] ⑤ RPC 오류:', error.message, '| code:', error.code, '| details:', error.details);
       return done(error);
     }
 
     const user = rows?.[0];
     if (!user) return done(new Error('사용자 처리 실패'));
-    console.log('[passport][naver] ⑤ DB 저장 결과 → id:', user.id, '| name:', user.name, '| email:', user.email);
+    console.log('[passport] ⑤ DB 결과 → id:', user.id, '| provider:', provider, '| email:', user.email || '(비어있음)', '| name:', user.name);
+
+    // ── RPC 후 email 이 비어있는 경우 대비 후처리 (DB 직접 패치)
+    if (!user.email && email) {
+      console.warn('[passport] ⚠️ email 비어있음 → 직접 UPDATE:', email);
+      const { error: patchErr } = await admin
+        .from('users')
+        .update({ email, updated_at: new Date().toISOString() })
+        .eq('id', user.id);
+      if (patchErr) {
+        console.error('[passport] 후처리 UPDATE 실패:', patchErr.message);
+      } else {
+        user.email = email;
+        console.log('[passport] ✅ email 후처리 UPDATE 완료:', email);
+      }
+    }
 
     // ── access_token DB 저장 (await - roles 조회 전 완료 보장)
     if (accessToken) {
@@ -140,6 +168,7 @@ if (process.env.KAKAO_CLIENT_ID) {
   passport.use(new KakaoStrategy(
     {
       clientID:          process.env.KAKAO_CLIENT_ID,
+      clientSecret:      process.env.KAKAO_CLIENT_SECRET || '',
       callbackURL:       process.env.KAKAO_CALLBACK_URL,
       passReqToCallback: true,
     },

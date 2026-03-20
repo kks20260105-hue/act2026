@@ -21,6 +21,7 @@ ALTER TABLE public.users
   ADD COLUMN IF NOT EXISTS provider_id    TEXT,
   ADD COLUMN IF NOT EXISTS employee_id    TEXT,
   ADD COLUMN IF NOT EXISTS name           TEXT,
+  ADD COLUMN IF NOT EXISTS display_name   TEXT,
   ADD COLUMN IF NOT EXISTS department     TEXT,
   ADD COLUMN IF NOT EXISTS position_nm    TEXT,
   ADD COLUMN IF NOT EXISTS profile_image  TEXT,
@@ -64,6 +65,7 @@ COMMENT ON COLUMN public.users.provider      IS '가입 유형: local(사번)/na
 COMMENT ON COLUMN public.users.provider_id   IS '소셜 provider 고유 ID';
 COMMENT ON COLUMN public.users.employee_id   IS '사번 (local 가입자 전용)';
 COMMENT ON COLUMN public.users.name          IS '실제 이름';
+COMMENT ON COLUMN public.users.display_name  IS '화면 표시 이름';
 COMMENT ON COLUMN public.users.department    IS '부서';
 COMMENT ON COLUMN public.users.position_nm   IS '직급';
 COMMENT ON COLUMN public.users.profile_image IS '소셜 프로필 이미지 URL';
@@ -96,11 +98,26 @@ BEGIN
    LIMIT 1;
 
   IF FOUND THEN
-    -- ✅ 기존 사용자: 이름/프로필이미지를 최신 정보로 업데이트
+    -- ✅ 기존 사용자: 최신 정보로 무조건 갱신
+    -- 실 이메일이 들어온 경우 가상 이메일(kakao.com)을 덮어씀
     UPDATE public.users
-       SET name          = COALESCE(NULLIF(p_name, ''), name),
-           profile_image = COALESCE(NULLIF(p_profile_image, ''), profile_image),
-           email         = COALESCE(NULLIF(p_email, ''), email),
+       SET name          = CASE WHEN p_name IS NOT NULL AND p_name <> '' THEN p_name ELSE name END,
+           display_name  = CASE WHEN p_name IS NOT NULL AND p_name <> '' THEN p_name ELSE display_name END,
+           profile_image = CASE WHEN p_profile_image IS NOT NULL AND p_profile_image <> ''
+                                THEN p_profile_image ELSE profile_image END,
+           email         = CASE
+                             -- 실 이메일(가상 kakao 패턴 아님)이 들어오면 무조건 교체
+                             WHEN p_email <> '' AND p_email NOT SIMILAR TO 'kakao\_[0-9]+@kakao\.com'
+                             THEN p_email
+                             -- 가상 이메일이 들어와도 DB가 비어있거나 기존도 가상이면 갱신
+                             WHEN p_email <> '' AND (
+                               email IS NULL OR
+                               email = '' OR
+                               email SIMILAR TO 'kakao\_[0-9]+@kakao\.com'
+                             ) THEN p_email
+                             -- DB에 실 이메일 있고 가상 이메일 들어오는 경우: 기존 유지
+                             ELSE email
+                           END,
            updated_at    = NOW()
      WHERE id = v_user.id
     RETURNING * INTO v_user;
@@ -112,7 +129,7 @@ BEGIN
   -- 신규 가입: auth.users 없이 직접 삽입 (UUID 자동 생성)
   INSERT INTO public.users (
     id, email, username, provider, provider_id,
-    name, profile_image, status, is_active
+    name, display_name, profile_image, status, is_active
   )
   VALUES (
     gen_random_uuid(),
@@ -121,6 +138,7 @@ BEGIN
     p_provider,
     p_provider_id,
     p_name,
+    COALESCE(NULLIF(p_name, ''), split_part(p_email, '@', 1)),
     p_profile_image,
     'active',
     true
@@ -129,6 +147,7 @@ BEGIN
     SET provider_id    = EXCLUDED.provider_id,
         provider       = EXCLUDED.provider,
         name           = COALESCE(NULLIF(EXCLUDED.name, ''), public.users.name),
+        display_name   = COALESCE(NULLIF(EXCLUDED.display_name, ''), public.users.display_name),
         profile_image  = COALESCE(NULLIF(EXCLUDED.profile_image, ''), public.users.profile_image),
         updated_at     = NOW()
   RETURNING * INTO v_user;
@@ -172,14 +191,14 @@ BEGIN
 
   INSERT INTO public.users (
     id, email, username, provider, employee_id,
-    name, department, position_nm, password_hash,
+    name, display_name, department, position_nm, password_hash,
     status, is_active
   )
   VALUES (
     v_new_id, p_email,
     split_part(p_email, '@', 1),
     'local',
-    p_employee_id, p_name,
+    p_employee_id, p_name, p_name,
     p_department, p_position, p_password,
     'pending',   -- 관리자 승인 대기
     false
@@ -198,3 +217,29 @@ COMMENT ON FUNCTION public.uf_register_employee IS
 CREATE INDEX IF NOT EXISTS idx_users_provider        ON public.users (provider);
 CREATE INDEX IF NOT EXISTS idx_users_provider_id     ON public.users (provider, provider_id);
 CREATE INDEX IF NOT EXISTS idx_users_status          ON public.users (status);
+
+-- ----------------------------------------------------------------
+-- Step 5. 기존 데이터 보정
+--   display_name 이 비어있는 기존 사용자만 name/username/email 기준으로 채움
+-- ----------------------------------------------------------------
+UPDATE public.users
+SET display_name = COALESCE(NULLIF(name, ''), NULLIF(username, ''), split_part(email, '@', 1))
+WHERE (display_name IS NULL OR btrim(display_name) = '');
+
+-- ----------------------------------------------------------------
+-- Step 6. 카카오 기존 레코드 email 보정
+--   email 이 비어있는 카카오 사용자에게 kakao_id 기반 가상 이메일 채움
+--   (심사 후 실 이메일 수신 시 uf_upsert_social_user 가 자동으로 덮어씁니다)
+-- ----------------------------------------------------------------
+UPDATE public.users
+SET email = 'kakao_' || provider_id || '@kakao.com'
+WHERE provider    = 'kakao'
+  AND provider_id IS NOT NULL
+  AND (email IS NULL OR btrim(email) = '');
+
+-- 보정 결과 확인
+SELECT id, provider, provider_id, email, name, updated_at
+  FROM public.users
+ WHERE provider = 'kakao'
+ ORDER BY created_at DESC
+ LIMIT 20;
