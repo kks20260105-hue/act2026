@@ -24,14 +24,16 @@ export const useUploadStore = create<UploadState>()((set, get) => ({
 
   setStep: (step) => set({ step }),
 
-  setPreview: (fileName, rows, summary) =>
+  setPreview: (fileName, rows, summary) => {
+    const safeRows = rows ?? [];
     set({
       fileName,
-      previewRows: rows,
+      previewRows: safeRows,
       summary,
-      errorRows:   rows.filter((r) => r.status === 'error'),
+      errorRows:   safeRows.filter((r) => r.status === 'error'),
       step:        'previewed',
-    }),
+    });
+  },
 
   reset: () =>
     set({ step: 'idle', fileName: null, previewRows: [], summary: null, errorRows: [] }),

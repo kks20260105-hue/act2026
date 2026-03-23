@@ -34,9 +34,11 @@ export const useMenuStore = create<MenuState>()((set) => ({
   myMenus:  [],
   menuTree: [],
 
-  setMenus: (menus) =>
-    set({ menus, menuTree: buildTree(menus) }),
+  setMenus: (menus) => {
+    const safe = menus ?? [];
+    set({ menus: safe, menuTree: buildTree(safe) });
+  },
 
   setMyMenus: (menus) =>
-    set({ myMenus: menus }),
+    set({ myMenus: menus ?? [] }),
 }));

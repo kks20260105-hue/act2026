@@ -16,8 +16,8 @@ export function useMenuTree() {
     queryKey: MENU_KEYS.all,
     queryFn:  async () => {
       const data = await menuApi.getAll();
-      setMenus(data);
-      return data;
+      setMenus(data ?? []);
+      return data ?? [];
     },
   });
 }
@@ -29,8 +29,8 @@ export function useMyMenus() {
     queryKey: MENU_KEYS.my,
     queryFn:  async () => {
       const data = await menuApi.getMy();
-      setMyMenus(data);
-      return data;
+      setMyMenus(data ?? []);
+      return data ?? [];
     },
   });
 }

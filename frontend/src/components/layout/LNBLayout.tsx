@@ -14,7 +14,7 @@ interface Props {
 export default function LNBLayout({ parentMenuUrl }: Props) {
   const navigate  = useNavigate();
   const location  = useLocation();
-  const myMenus   = useMenuStore((s) => s.myMenus);
+  const myMenus   = useMenuStore((s) => s.myMenus) ?? [];
 
   const lnbMenus = myMenus.filter((m) => {
     if (m.menu_depth !== 2) return false;
