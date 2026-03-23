@@ -8,7 +8,7 @@ import * as Icons from '@ant-design/icons';
 const { Sider } = Layout;
 
 interface Props {
-  parentMenuUrl?: string;
+  parentMenuUrl?: string; // 미전달 시 현재 URL에서 자동 감지
 }
 
 export default function LNBLayout({ parentMenuUrl }: Props) {
@@ -16,13 +16,22 @@ export default function LNBLayout({ parentMenuUrl }: Props) {
   const location  = useLocation();
   const myMenus   = useMenuStore((s) => s.myMenus) ?? [];
 
+  const gnbMenus  = myMenus.filter((m) => m.menu_depth === 1);
+
+  // parentMenuUrl 미전달 시 현재 경로로 활성 GNB 자동 감지
+  const activeGnbUrl = parentMenuUrl ??
+    gnbMenus.find((g) =>
+      location.pathname === g.menu_url ||
+      location.pathname.startsWith(g.menu_url + '/')
+    )?.menu_url;
+
   const lnbMenus = myMenus.filter((m) => {
     if (m.menu_depth !== 2) return false;
-    if (parentMenuUrl) {
+    if (activeGnbUrl) {
       const parent = myMenus.find((p) => p.menu_id === m.parent_menu_id);
-      return parent?.menu_url === parentMenuUrl;
+      return parent?.menu_url === activeGnbUrl;
     }
-    return true;
+    return false;
   });
 
   if (lnbMenus.length === 0) return null;

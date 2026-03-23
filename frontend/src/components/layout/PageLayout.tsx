@@ -15,7 +15,7 @@ interface Props {
   children:        React.ReactNode;
   breadcrumbs?:    BreadcrumbItem[];
   showLNB?:        boolean;
-  parentMenuUrl?:  string;
+  parentMenuUrl?:  string; // 생략 시 LNBLayout이 URL로 자동 감지
 }
 
 export default function PageLayout({ children, breadcrumbs, showLNB = true, parentMenuUrl }: Props) {

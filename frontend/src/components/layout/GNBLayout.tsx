@@ -5,20 +5,28 @@ import { UserOutlined, LogoutOutlined } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useMyMenus } from '../../hooks/useMenuTree';
+import { useMenuStore } from '../../stores/menuStore';
 
 const { Header } = Layout;
 const { Text } = Typography;
 
 export default function GNBLayout() {
-  const navigate     = useNavigate();
-  const location     = useLocation();
+  const navigate         = useNavigate();
+  const location         = useLocation();
   const { user, logout } = useAuth();
-  const { data: myMenus = [] } = useMyMenus();
+  useMyMenus(); // 내 메뉴 로드 (스토어에 저장)
+  const myMenus          = useMenuStore((s) => s.myMenus) ?? [];
 
   const gnbMenus = myMenus.filter((m) => m.menu_depth === 1);
+  const lnbMenus = myMenus.filter((m) => m.menu_depth === 2);
+
+  // 현재 경로의 첫 번째 세그먼트로 활성 GNB 계산
+  const activeGnbKey = gnbMenus.find((g) =>
+    location.pathname === g.menu_url || location.pathname.startsWith(g.menu_url + '/')
+  )?.menu_url ?? '';
 
   const handleLogout = async () => {
-    await logout();   // 백엔드 토큰 폐기 + localStorage 초기화 + 스토어 클리어
+    await logout();
     navigate('/login');
   };
 
@@ -33,6 +41,27 @@ export default function GNBLayout() {
     ],
   };
 
+  // GNB 아이템 빌드: 하위 메뉴가 있으면 드롭다운 서브메뉴로 표시
+  const menuItems = gnbMenus.map((gnb) => {
+    const children = lnbMenus.filter((m) => m.parent_menu_id === gnb.menu_id);
+    if (children.length > 0) {
+      return {
+        key:      gnb.menu_url,
+        label:    gnb.menu_nm,
+        children: children.map((child) => ({
+          key:     child.menu_url,
+          label:   child.menu_nm,
+          onClick: () => navigate(child.menu_url),
+        })),
+      };
+    }
+    return {
+      key:     gnb.menu_url,
+      label:   gnb.menu_nm,
+      onClick: () => navigate(gnb.menu_url),
+    };
+  });
+
   return (
     <Header className={styles.header} style={{ background: '#001529' }}>
       {/* 로고 */}
@@ -40,17 +69,13 @@ export default function GNBLayout() {
         KKS Portal
       </div>
 
-      {/* GNB 메뉴 */}
+      {/* GNB 메뉴 - 하위 메뉴는 드롭다운으로 자동 표시 */}
       <Menu
         theme="dark"
         mode="horizontal"
-        selectedKeys={[location.pathname.split('/')[1] ? `/${location.pathname.split('/')[1]}` : '/']}
+        selectedKeys={[location.pathname, activeGnbKey]}
         className={styles.gnbMenu}
-        items={gnbMenus.map((m) => ({
-          key:   m.menu_url,
-          label: m.menu_nm,
-          onClick: () => navigate(m.menu_url),
-        }))}
+        items={menuItems}
       />
 
       {/* 사용자 정보 */}
