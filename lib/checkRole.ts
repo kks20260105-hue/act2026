@@ -37,7 +37,9 @@ export function withRole(
       return res.status(401).json({ code: 'UNAUTHORIZED', message: '인증 필요' });
     }
 
-    const userRoles = await getUserRoles(user.id);
+    // JWT 토큰에 이미 roles가 담겨 있으면 DB 재조회 없이 사용 (빠르고 안정적)
+    const jwtRoles: RoleCode[] = Array.isArray(user.roles) ? user.roles : [];
+    const userRoles = jwtRoles.length > 0 ? jwtRoles : await getUserRoles(user.id);
     const hasRole = requiredRoles.some((r) => userRoles.includes(r));
 
     if (!hasRole) {
