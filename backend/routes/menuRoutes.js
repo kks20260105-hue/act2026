@@ -17,18 +17,28 @@ const requireRole = (...roles) => (req, res, next) => {
 router.get('/my', verifyToken, async (req, res) => {
   try {
     const admin = getSupabaseAdmin();
-    const { data: userRoleData } = await admin
+    console.log('[menuRoutes /my] userId:', req.user.id);
+
+    // STEP 1: user_id → tb_user_role → role_id 직접 조회
+    const { data: userRoleData, error: urErr } = await admin
       .from('tb_user_role')
-      .select('tb_role(role_cd)')
+      .select('tb_role(role_id, role_cd)')
       .eq('user_id', req.user.id)
       .eq('use_yn', 'Y');
 
-    const roleCds = (userRoleData ?? []).map((r) => r.tb_role?.role_cd).filter(Boolean);
-    if (roleCds.length === 0) return res.json({ success: true, data: [], message: '접근 가능한 메뉴가 없습니다.' });
+    if (urErr) {
+      console.error('[menuRoutes /my] tb_user_role 오류:', urErr.message);
+      return res.status(500).json({ success: false, message: 'Role 조회 실패' });
+    }
 
-    const { data: roleData } = await admin.from('tb_role').select('role_id').in('role_cd', roleCds);
-    const roleIds = (roleData ?? []).map((r) => r.role_id);
+    console.log('[menuRoutes /my] userRoleData:', JSON.stringify(userRoleData));
 
+    const roleIds = (userRoleData ?? []).map((r) => r.tb_role?.role_id).filter(Boolean);
+    console.log('[menuRoutes /my] roleIds:', roleIds);
+
+    if (roleIds.length === 0) return res.json({ success: true, data: [], message: '접근 가능한 메뉴가 없습니다.' });
+
+    // STEP 2: role_id → tb_menu_role (read_yn='Y') → menu_id
     const { data: menuRoleData, error: mrErr } = await admin
       .from('tb_menu_role')
       .select('menu_id, read_yn, write_yn')
@@ -37,9 +47,14 @@ router.get('/my', verifyToken, async (req, res) => {
 
     if (mrErr) return res.status(500).json({ success: false, message: '메뉴 권한 조회 실패' });
 
-    const allowedMenuIds = [...new Set(menuRoleData.map((m) => m.menu_id))];
+    console.log('[menuRoutes /my] menuRoleData 수:', menuRoleData?.length ?? 0);
+
+    const allowedMenuIds = [...new Set((menuRoleData ?? []).map((m) => m.menu_id))];
+    console.log('[menuRoutes /my] allowedMenuIds:', allowedMenuIds);
+
     if (allowedMenuIds.length === 0) return res.json({ success: true, data: [] });
 
+    // STEP 3: menu_id → tb_menu (use_yn='Y')
     const { data: menus, error: menuErr } = await admin
       .from('tb_menu').select('*').in('menu_id', allowedMenuIds).eq('use_yn', 'Y')
       .order('menu_depth', { ascending: true }).order('menu_order', { ascending: true });
@@ -47,7 +62,7 @@ router.get('/my', verifyToken, async (req, res) => {
     if (menuErr) return res.status(500).json({ success: false, message: menuErr.message });
 
     const writeMap = {};
-    menuRoleData.forEach((m) => { if (m.write_yn === 'Y') writeMap[m.menu_id] = true; });
+    (menuRoleData ?? []).forEach((m) => { if (m.write_yn === 'Y') writeMap[m.menu_id] = true; });
     const result = (menus ?? []).map((m) => ({ ...m, can_write: !!writeMap[m.menu_id] }));
     return res.json({ success: true, data: result });
   } catch (err) {

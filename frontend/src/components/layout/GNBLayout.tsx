@@ -20,6 +20,11 @@ export default function GNBLayout() {
   const gnbMenus = myMenus.filter((m) => m.menu_depth === 1);
   const lnbMenus = myMenus.filter((m) => m.menu_depth === 2);
 
+  // ── 디버그 로그 (문제 파악용) ─────────────────────────────────────────
+  console.log('[GNBLayout] myMenus 전체:', myMenus.length, '개', myMenus);
+  console.log('[GNBLayout] gnbMenus(depth=1):', gnbMenus.length, '개', gnbMenus);
+  console.log('[GNBLayout] lnbMenus(depth=2):', lnbMenus.length, '개', lnbMenus);
+
   // 현재 경로의 첫 번째 세그먼트로 활성 GNB 계산
   const activeGnbKey = gnbMenus.find((g) =>
     location.pathname === g.menu_url || location.pathname.startsWith(g.menu_url + '/')

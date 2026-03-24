@@ -16,33 +16,67 @@ async function handler(req: VercelRequest, res: VercelResponse) {
   if (menuId === 'my') {
     if (req.method !== 'GET') return res.status(405).json(errorResponse('SERVER_ERROR', 'Method Not Allowed'));
     const user = (req as any).user;
+    console.log('[menus/my] userId:', user?.id, 'email:', user?.email);
 
-    const { data: userRoleData } = await supabaseAdmin
+    // STEP 1: user_id → tb_user_role → role_id 직접 조회 (tb_role join)
+    const { data: userRoleData, error: urErr } = await supabaseAdmin
       .from('tb_user_role')
-      .select('tb_role(role_cd)')
+      .select('tb_role(role_id, role_cd)')
       .eq('user_id', user.id)
       .eq('use_yn', 'Y');
 
-    const roleCds: string[] = (userRoleData ?? []).map((r: any) => r.tb_role?.role_cd).filter(Boolean);
-    if (roleCds.length === 0) return res.status(200).json(successResponse([], '접근 가능한 메뉴가 없습니다.'));
+    if (urErr) {
+      console.error('[menus/my] tb_user_role 오류:', urErr.message);
+      return res.status(500).json(errorResponse('DB_ERROR', 'Role 조회 실패'));
+    }
 
-    const { data: roleData } = await supabaseAdmin.from('tb_role').select('role_id').in('role_cd', roleCds);
-    const roleIds = (roleData ?? []).map((r: any) => r.role_id);
+    console.log('[menus/my] userRoleData:', JSON.stringify(userRoleData));
 
+    const roleIds: string[] = (userRoleData ?? [])
+      .map((r: any) => r.tb_role?.role_id)
+      .filter(Boolean);
+
+    console.log('[menus/my] roleIds:', roleIds);
+
+    if (roleIds.length === 0) {
+      console.warn('[menus/my] 접근 가능한 Role 없음');
+      return res.status(200).json(successResponse([], '접근 가능한 메뉴가 없습니다.'));
+    }
+
+    // STEP 2: role_id → tb_menu_role (read_yn='Y') → menu_id
     const { data: menuRoleData, error: mrErr } = await supabaseAdmin
       .from('tb_menu_role')
       .select('menu_id, read_yn, write_yn')
       .in('role_id', roleIds)
       .eq('read_yn', 'Y');
 
-    if (mrErr || !menuRoleData) return res.status(500).json(errorResponse('DB_ERROR', '메뉴 권한 조회 실패'));
+    if (mrErr || !menuRoleData) {
+      console.error('[menus/my] tb_menu_role 오류:', mrErr?.message);
+      return res.status(500).json(errorResponse('DB_ERROR', '메뉴 권한 조회 실패'));
+    }
+
+    console.log('[menus/my] menuRoleData 수:', menuRoleData.length);
 
     const allowedMenuIds = [...new Set(menuRoleData.map((m: any) => m.menu_id))];
+    console.log('[menus/my] allowedMenuIds:', allowedMenuIds);
+
+    // allowedMenuIds 비어있으면 즉시 반환 (Supabase .in([]) 오류 방지)
+    if (allowedMenuIds.length === 0) {
+      console.warn('[menus/my] 매핑된 메뉴 없음');
+      return res.status(200).json(successResponse([], '매핑된 메뉴가 없습니다.'));
+    }
+
+    // STEP 3: menu_id → tb_menu (use_yn='Y')
     const { data: menus, error: menuErr } = await supabaseAdmin
       .from('tb_menu').select('*').in('menu_id', allowedMenuIds).eq('use_yn', 'Y')
       .order('menu_depth', { ascending: true }).order('menu_order', { ascending: true });
 
-    if (menuErr) return res.status(500).json(errorResponse('DB_ERROR', menuErr.message));
+    if (menuErr) {
+      console.error('[menus/my] tb_menu 오류:', menuErr.message);
+      return res.status(500).json(errorResponse('DB_ERROR', menuErr.message));
+    }
+
+    console.log('[menus/my] 최종 메뉴 수:', menus?.length ?? 0);
 
     const writeMap: Record<string, boolean> = {};
     menuRoleData.forEach((m: any) => { if (m.write_yn === 'Y') writeMap[m.menu_id] = true; });
