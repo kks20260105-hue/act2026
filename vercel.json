@@ -22,6 +22,7 @@
 
     { "source": "/api/users/:userId/roles/:roleId", "destination": "/api/users/:userId/roles/index?roleId=:roleId" },
     { "source": "/api/users/:userId/roles",         "destination": "/api/users/:userId/roles/index" },
+    { "source": "/api/users",                       "destination": "/api/users/index" },
 
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],

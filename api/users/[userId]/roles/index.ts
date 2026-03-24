@@ -8,6 +8,12 @@ async function handler(req: VercelRequest, res: VercelResponse) {
   const { userId } = req.query as { userId: string };
   const actor = (req as any).user;
 
+  // UUID 형식 검증
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(userId)) {
+    return res.status(400).json(errorResponse('INVALID_FORMAT', 'userId가 유효한 UUID 형식이 아닙니다.'));
+  }
+
   // GET /api/users/:userId/roles
   if (req.method === 'GET') {
     const today = new Date().toISOString().split('T')[0];

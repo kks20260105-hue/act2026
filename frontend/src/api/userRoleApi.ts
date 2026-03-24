@@ -21,5 +21,5 @@ export const userRoleApi = {
 
   /** 메뉴-Role 배치 저장 */
   batchMenuRoles: (menuId: string, roleIds: string[]) =>
-    api.put('/menu-roles/batch', { menu_id: menuId, role_ids: roleIds }).then((r) => r.data),
+    api.put('/menu-roles', { menu_id: menuId, role_ids: roleIds }).then((r) => r.data),
 };

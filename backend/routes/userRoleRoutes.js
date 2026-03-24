@@ -13,6 +13,17 @@ const requireRole = (...roles) => (req, res, next) => {
   return res.status(403).json({ success: false, message: '접근 권한이 없습니다.' });
 };
 
+const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const validateUUID = (id) => uuidRegex.test(id);
+
+// 라우터 전체에 userId UUID 검증 적용
+router.use((req, res, next) => {
+  if (req.params.userId && !validateUUID(req.params.userId)) {
+    return res.status(400).json({ success: false, message: 'userId가 유효한 UUID 형식이 아닙니다.' });
+  }
+  next();
+});
+
 // GET /api/users/:userId/roles
 router.get('/', verifyToken, requireRole('SUPER_ADMIN', 'ADMIN'), async (req, res) => {
   try {
@@ -56,7 +67,25 @@ router.post('/', verifyToken, requireRole('SUPER_ADMIN', 'ADMIN'), async (req, r
   }
 });
 
-// DELETE /api/users/:userId/roles?roleId=xxx
+// DELETE /api/users/:userId/roles/:roleId  (경로 파라미터 방식)
+router.delete('/:roleId', verifyToken, requireRole('SUPER_ADMIN', 'ADMIN'), async (req, res) => {
+  try {
+    const roleId = req.params.roleId;
+    const admin = getSupabaseAdmin();
+    const { error } = await admin
+      .from('tb_user_role')
+      .update({ use_yn: 'N' })
+      .eq('user_id', req.params.userId)
+      .eq('role_id', roleId);
+
+    if (error) return res.status(500).json({ success: false, message: error.message });
+    return res.json({ success: true, data: null, message: 'Role이 회수되었습니다.' });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// DELETE /api/users/:userId/roles?roleId=xxx  (쿼리 파라미터 방식, 하위호환)
 router.delete('/', verifyToken, requireRole('SUPER_ADMIN', 'ADMIN'), async (req, res) => {
   try {
     const { roleId } = req.query;

@@ -47,7 +47,29 @@ router.post('/', verifyToken, requireRole('SUPER_ADMIN', 'ADMIN'), async (req, r
   }
 });
 
-// PUT /api/menu-roles/batch  →  특정 메뉴의 Role 매핑 전체 교체
+// PUT /api/menu-roles  →  특정 메뉴의 Role 매핑 전체 교체 (Vercel index.ts와 동일 경로)
+router.put('/', verifyToken, requireRole('SUPER_ADMIN', 'ADMIN'), async (req, res) => {
+  try {
+    const { menu_id, role_ids } = req.body;
+    if (!menu_id || !Array.isArray(role_ids)) {
+      return res.status(400).json({ success: false, message: 'menu_id, role_ids 필수' });
+    }
+    const admin = getSupabaseAdmin();
+    const { error: delError } = await admin.from('tb_menu_role').delete().eq('menu_id', menu_id);
+    if (delError) return res.status(500).json({ success: false, message: delError.message });
+
+    if (role_ids.length > 0) {
+      const inserts = role_ids.map((role_id) => ({ menu_id, role_id, read_yn: 'Y', write_yn: 'N' }));
+      const { error: insError } = await admin.from('tb_menu_role').insert(inserts);
+      if (insError) return res.status(500).json({ success: false, message: insError.message });
+    }
+    return res.json({ success: true, data: null, message: '메뉴-Role 매핑이 갱신되었습니다.' });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// PUT /api/menu-roles/batch  →  하위호환 유지
 router.put('/batch', verifyToken, requireRole('SUPER_ADMIN', 'ADMIN'), async (req, res) => {
   try {
     const { menu_id, role_ids } = req.body;
