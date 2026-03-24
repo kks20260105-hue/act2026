@@ -1,8 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { supabaseAdmin } from '../../lib/supabaseClient';
 import { withAuth } from '../../lib/authMiddleware';
-import { withRole } from '../../lib/checkRole';
 import { successResponse, errorResponse } from '../../lib/errorCodes';
+
+// 관리자 Role 체크 헬퍼 (my 엔드포인트는 일반 사용자도 접근 가능하므로 내부에서 개별 적용)
+function isAdmin(req: VercelRequest): boolean {
+  const roles: string[] = (req as any).user?.roles ?? [];
+  return roles.includes('SUPER_ADMIN') || roles.includes('ADMIN');
+}
 
 async function handler(req: VercelRequest, res: VercelResponse) {
   const { menuId } = req.query as { menuId: string };
@@ -47,6 +52,7 @@ async function handler(req: VercelRequest, res: VercelResponse) {
 
   // GET /api/menus/:menuId
   if (req.method === 'GET') {
+    if (!isAdmin(req)) return res.status(403).json(errorResponse('FORBIDDEN', '관리자 권한이 필요합니다.'));
     const { data, error } = await supabaseAdmin
       .from('tb_menu')
       .select('*, tb_menu_role(role_id, read_yn, write_yn, tb_role(role_cd, role_nm))')
@@ -59,6 +65,7 @@ async function handler(req: VercelRequest, res: VercelResponse) {
 
   // PUT /api/menus/:menuId
   if (req.method === 'PUT') {
+    if (!isAdmin(req)) return res.status(403).json(errorResponse('FORBIDDEN', '관리자 권한이 필요합니다.'));
     const { menu_nm, menu_url, parent_menu_id, menu_depth, menu_order, icon_class, use_yn } = req.body;
     const { data, error } = await supabaseAdmin
       .from('tb_menu')
@@ -73,6 +80,7 @@ async function handler(req: VercelRequest, res: VercelResponse) {
 
   // DELETE /api/menus/:menuId
   if (req.method === 'DELETE') {
+    if (!isAdmin(req)) return res.status(403).json(errorResponse('FORBIDDEN', '관리자 권한이 필요합니다.'));
     const { error } = await supabaseAdmin.from('tb_menu').delete().eq('menu_id', menuId);
     if (error) return res.status(500).json(errorResponse('DB_ERROR', error.message));
     return res.status(200).json(successResponse(null, '메뉴가 삭제되었습니다.'));
@@ -81,4 +89,5 @@ async function handler(req: VercelRequest, res: VercelResponse) {
   return res.status(405).json(errorResponse('SERVER_ERROR', 'Method Not Allowed'));
 }
 
-export default withAuth(withRole(['SUPER_ADMIN', 'ADMIN'], handler));
+// /my 는 일반 사용자도 접근 가능하므로 withRole 제거 → 내부에서 개별 체크
+export default withAuth(handler);

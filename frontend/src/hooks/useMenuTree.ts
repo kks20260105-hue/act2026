@@ -32,6 +32,7 @@ export function useMyMenus() {
       setMyMenus(data ?? []);
       return data ?? [];
     },
+    staleTime: 0,  // GNB 메뉴는 항상 최신 상태 유지 (로그인/Role 변경 즉시 반영)
   });
 }
 

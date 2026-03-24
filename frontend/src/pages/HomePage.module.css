@@ -10,10 +10,22 @@
 }
 
 .adminCard {
-  cursor:     pointer;
+  cursor:     grab;
   text-align: center;
+  user-select: none;
+  transition: box-shadow 0.2s, transform 0.15s;
+}
+
+.adminCard:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 }
 
 .adminCard :global(.ant-card-body) {
   padding: 24px 16px;
+}
+
+.dragging {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18) !important;
+  transform:  scale(1.04);
+  cursor:     grabbing !important;
 }

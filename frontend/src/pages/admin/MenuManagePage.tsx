@@ -1,9 +1,17 @@
 ﻿import React, { useState, useMemo } from 'react';
 import {
   Button, Table, Space, Tag, Tooltip, Typography, Switch, App,
-  Modal, Form, Input, InputNumber, Select, Radio, Card,
+  Modal, Form, Input, InputNumber, Select, Radio, Card, Pagination,
 } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, UploadOutlined, SearchOutlined } from '@ant-design/icons';
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  UploadOutlined,
+  SearchOutlined,
+  DoubleLeftOutlined,
+  DoubleRightOutlined,
+} from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useMenuTree, useCreateMenu, useDeleteMenu } from '../../hooks/useMenuTree';
 import { menuApi } from '../../api/menuApi';
@@ -31,9 +39,27 @@ export default function MenuManagePage() {
   const [form]                    = Form.useForm<MenuFormValues>();
   const watchDepth                = Form.useWatch('menu_depth', form);
 
+  // use_yn 토글 (Switch 직접 클릭)
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  const handleToggleUseYn = async (record: Menu, checked: boolean) => {
+    setTogglingId(record.menu_id);
+    try {
+      await menuApi.update(record.menu_id, { use_yn: checked ? 'Y' : 'N' });
+      await qc.invalidateQueries({ queryKey: MENU_KEYS.all });
+      message.success(`"${record.menu_nm}" 사용 여부가 ${checked ? 'ON' : 'OFF'}으로 변경되었습니다.`);
+    } catch {
+      message.error('사용 여부 변경에 실패하였습니다.');
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
   // 검색 / 필터
   const [searchText, setSearchText]   = useState('');
   const [filterDepth, setFilterDepth] = useState<'' | '1' | '2'>('');
+  const [page, setPage]               = useState(1);
+  const [pageSize, setPageSize]       = useState(10);
 
   const gnbMenus = useMemo(() => allMenus.filter((m) => m.menu_depth === 1), [allMenus]);
 
@@ -112,15 +138,34 @@ export default function MenuManagePage() {
 
   const columns = [
     {
+      title:  'No',
+      key:    'no',
+      width:  55,
+      align:  'center' as const,
+      render: (_: any, __: Menu, index: number) => (page - 1) * pageSize + index + 1,
+    },
+    {
       title: '메뉴명',
       key:   'menu_nm',
       render: (_: any, r: Menu) => (
-        <Space>
-          <Text strong style={{ fontSize: 13 }}>{r.menu_nm}</Text>
-          <Tag color={r.menu_depth === 1 ? 'blue' : 'green'} style={{ fontSize: 11 }}>
-            {r.menu_depth === 1 ? 'GNB' : 'LNB'}
-          </Tag>
-        </Space>
+        <Tooltip title="수정">
+          <Space
+            style={{ cursor: 'pointer' }}
+            onClick={() => openEdit(r)}
+            className="clickable-cell"
+          >
+            <Text
+              strong
+              style={{ fontSize: 13 }}
+              className="clickable-text"
+            >
+              {r.menu_nm}
+            </Text>
+            <Tag color={r.menu_depth === 1 ? 'blue' : 'green'} style={{ fontSize: 11 }}>
+              {r.menu_depth === 1 ? 'GNB' : 'LNB'}
+            </Tag>
+          </Space>
+        </Tooltip>
       ),
     },
     {
@@ -129,9 +174,16 @@ export default function MenuManagePage() {
       width:  130,
       render: (_: any, r: Menu) =>
         r.menu_depth === 2 ? (
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            {'\u2514 '}{getParentName(r.parent_menu_id)}
-          </Text>
+          <Tooltip title="수정">
+            <Text
+              type="secondary"
+              style={{ fontSize: 12, cursor: 'pointer' }}
+              className="clickable-text"
+              onClick={() => openEdit(r)}
+            >
+              {'\u2514 '}{getParentName(r.parent_menu_id)}
+            </Text>
+          </Tooltip>
         ) : (
           <Text type="secondary">-</Text>
         ),
@@ -140,7 +192,17 @@ export default function MenuManagePage() {
       title:     'URL',
       dataIndex: 'menu_url',
       key:       'menu_url',
-      render:    (url: string) => <code style={{ fontSize: 12 }}>{url}</code>,
+      render:    (url: string, r: Menu) => (
+        <Tooltip title="수정">
+          <code
+            style={{ fontSize: 12, cursor: 'pointer' }}
+            onClick={() => openEdit(r)}
+            className="clickable-text"
+          >
+            {url}
+          </code>
+        </Tooltip>
+      ),
     },
     {
       title:     '순서',
@@ -155,7 +217,14 @@ export default function MenuManagePage() {
       width:  70,
       align:  'center' as const,
       render: (_: any, r: Menu) => (
-        <Switch checked={r.use_yn === 'Y'} size="small" disabled />
+        <Tooltip title={r.use_yn === 'Y' ? 'ON → OFF' : 'OFF → ON'}>
+          <Switch
+            checked={r.use_yn === 'Y'}
+            size="small"
+            loading={togglingId === r.menu_id}
+            onChange={(checked) => handleToggleUseYn(r, checked)}
+          />
+        </Tooltip>
       ),
     },
     {
@@ -200,7 +269,7 @@ export default function MenuManagePage() {
           <Space>
             <Select
               value={filterDepth}
-              onChange={(v) => setFilterDepth(v as '' | '1' | '2')}
+              onChange={(v) => { setFilterDepth(v as '' | '1' | '2'); setPage(1); }}
               style={{ width: 110 }}
               options={[
                 { value: '', label: '전체' },
@@ -211,7 +280,7 @@ export default function MenuManagePage() {
             <Input
               placeholder="메뉴명 / URL 검색"
               value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
+              onChange={(e) => { setSearchText(e.target.value); setPage(1); }}
               style={{ width: 220 }}
               suffix={<SearchOutlined />}
               allowClear
@@ -232,15 +301,78 @@ export default function MenuManagePage() {
         <Table<Menu>
           rowKey="menu_id"
           columns={columns}
-          dataSource={filteredMenus}
-          pagination={{
-            pageSize: 20,
-            showTotal: (t: number) => `총 ${t}개`,
-            size: 'small',
-          }}
+          dataSource={filteredMenus.slice((page - 1) * pageSize, page * pageSize)}
+          pagination={false}
           size="small"
           bordered
         />
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 16 }}>
+          <Pagination
+            current={page}
+            pageSize={pageSize}
+            total={filteredMenus.length}
+            onChange={(p) => setPage(p)}
+            showSizeChanger={false}
+            size="small"
+            itemRender={(_, type, originalElement) => {
+              if (type === 'prev') {
+                const disabled = page <= 1;
+                return (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', columnGap: 8 }}>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); if (!disabled) setPage(1); }}
+                      disabled={disabled}
+                      className="ant-pagination-item-link"
+                      aria-label="first-page"
+                      title="첫 페이지"
+                    >
+                      <DoubleLeftOutlined />
+                    </button>
+                    {originalElement}
+                  </span>
+                );
+              }
+              if (type === 'next') {
+                const lastPage = Math.ceil(filteredMenus.length / pageSize) || 1;
+                const disabled = page >= lastPage;
+                return (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', columnGap: 8 }}>
+                    {originalElement}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); if (!disabled) setPage(lastPage); }}
+                      disabled={disabled}
+                      className="ant-pagination-item-link"
+                      aria-label="last-page"
+                      title="마지막 페이지"
+                    >
+                      <DoubleRightOutlined />
+                    </button>
+                  </span>
+                );
+              }
+              return originalElement;
+            }}
+          />
+          <Select
+            value={pageSize}
+            onChange={(v) => { setPageSize(v); setPage(1); }}
+            style={{ width: 95 }}
+            size="small"
+            options={[
+              { value: 2,    label: '2개' },
+              { value: 3,    label: '3개' },
+              { value: 5,    label: '5개' },
+              { value: 10,   label: '10개' },
+              { value: 15,   label: '15개' },              
+              { value: 20,   label: '20개' },              
+              { value: 30,   label: '30개' },
+              { value: 50,   label: '50개' },
+              { value: 100,  label: '100개' },
+              { value: 500,  label: '500개' },
+              { value: 1000, label: '1000개' },
+            ]}
+          />
+        </div>
       </Card>
 
       {/* 메뉴 추가 / 수정 모달 */}

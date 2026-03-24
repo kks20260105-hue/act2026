@@ -5,3 +5,20 @@
   flex-direction: column;
   background-color: #f5f5f5;
 }
+
+/* 클릭 가능한 테이블 셀 hover 효과 */
+.clickable-text:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  color: #1677ff;
+}
+
+.clickable-cell:hover .clickable-text {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  color: #1677ff;
+}
+
+.clickable-cell:hover svg[data-icon] {
+  color: #1677ff !important;
+}
