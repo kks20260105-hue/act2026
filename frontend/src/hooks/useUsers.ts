@@ -6,9 +6,11 @@ export interface UserProfile {
   id:           string;
   email:        string;
   username:     string | null;
-  dept_nm:      string | null;
-  phone:        string | null;
-  use_yn:       'Y' | 'N';
+  name:         string | null;
+  display_name: string | null;
+  department:   string | null;
+  position_nm:  string | null;
+  is_active:    boolean;
   created_at:   string;
   tb_user_role?: Array<{
     role_id:  string;

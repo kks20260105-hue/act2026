@@ -10,11 +10,14 @@ import {
   SearchOutlined,
   DoubleLeftOutlined,
   DoubleRightOutlined,
+  EditOutlined,
 } from '@ant-design/icons';
-import { useMenuTree } from '../../hooks/useMenuTree';
+import { useQueryClient } from '@tanstack/react-query';
+import { useMenuTree, MENU_KEYS } from '../../hooks/useMenuTree';
 import { useMenuStore } from '../../stores/menuStore';
 import { useRoles } from '../../hooks/useRoles';
 import { useMenuRoles, useBatchMenuRoles } from '../../hooks/useMenuRoles';
+import { menuApi } from '../../api/menuApi';
 import PageLayout from '../../components/layout/PageLayout';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import type { Menu } from '../../types/menu';
@@ -31,11 +34,28 @@ interface MappingRow {
 
 export default function MenuRolePage() {
   const { message, modal }              = App.useApp();
+  const qc                               = useQueryClient();
   const { isLoading: mLoading }         = useMenuTree();
   const allMenus: Menu[]                  = useMenuStore((s) => s.menus ?? []);
   const { data: roles = [], isLoading: rLoading }       = useRoles();
   const { data: menuRoles = [], isLoading: mrLoading }  = useMenuRoles();
   const batchSave                        = useBatchMenuRoles();
+
+  // ── 메뉴 사용여부 토글 → DB 자동 저장 ──────────────────────────────
+  const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
+
+  const handleToggleUseYn = async (menu: Menu, checked: boolean) => {
+    setTogglingIds((prev) => new Set(prev).add(menu.menu_id));
+    try {
+      await menuApi.update(menu.menu_id, { use_yn: checked ? 'Y' : 'N' });
+      await qc.invalidateQueries({ queryKey: MENU_KEYS.all });
+      message.success(`'${menu.menu_nm}' 사용 여부가 ${checked ? 'ON' : 'OFF'}으로 변경되었습니다.`);
+    } catch {
+      message.error('사용 여부 변경에 실패했습니다.');
+    } finally {
+      setTogglingIds((prev) => { const s = new Set(prev); s.delete(menu.menu_id); return s; });
+    }
+  };
 
   // ── 로컬 매핑 상태 : menuId → roleId[] ────────────────────────────
   const [mappings,     setMappings]     = useState<Record<string, string[]>>({});
@@ -187,6 +207,75 @@ export default function MenuRolePage() {
 
   const watchMenuId = Form.useWatch('menu_id', form);
 
+  // ── 수정 모달 ────────────────────────────────────────────────────────
+  const [editOpen,    setEditOpen]    = useState(false);
+  const [editRow,     setEditRow]     = useState<MappingRow | null>(null);
+  const [editSaving,  setEditSaving]  = useState(false);
+  const [editForm]                    = Form.useForm<{ menu_id: string; role_id: string }>();
+  const watchEditMenuId               = Form.useWatch('menu_id', editForm);
+
+  const openEdit = (row: MappingRow) => {
+    setEditRow(row);
+    editForm.setFieldsValue({ menu_id: row.menu.menu_id, role_id: row.role.role_id });
+    setEditOpen(true);
+  };
+
+  const handleEditOk = async () => {
+    const values = await editForm.validateFields();
+    if (!editRow) return;
+    setEditSaving(true);
+    try {
+      const oldMenuId = editRow.menu.menu_id;
+      const oldRoleId = editRow.role.role_id;
+      const newMenuId = values.menu_id;
+      const newRoleId = values.role_id;
+
+      // 변경 없으면 그냥 닫기
+      if (oldMenuId === newMenuId && oldRoleId === newRoleId) {
+        setEditOpen(false);
+        setEditSaving(false);
+        return;
+      }
+
+      let nextMappings = { ...mappings };
+
+      // 기존 매핑에서 제거
+      nextMappings[oldMenuId] = (nextMappings[oldMenuId] ?? []).filter((id) => id !== oldRoleId);
+
+      // 새 메뉴+role 에 추가 (중복 방지)
+      const alreadyExists = (nextMappings[newMenuId] ?? []).includes(newRoleId);
+      if (alreadyExists) {
+        message.warning('이미 등록된 매핑입니다.');
+        setEditSaving(false);
+        return;
+      }
+      nextMappings[newMenuId] = [...(nextMappings[newMenuId] ?? []), newRoleId];
+
+      setMappings(nextMappings);
+
+      // 영향받는 메뉴 저장 (old / new 모두)
+      const saveTargets = oldMenuId === newMenuId ? [newMenuId] : [oldMenuId, newMenuId];
+      await Promise.all(
+        saveTargets.map((menuId) =>
+          batchSave.mutateAsync({ menuId, roleIds: nextMappings[menuId] ?? [] }),
+        ),
+      );
+
+      message.success('수정되었습니다.');
+      setEditOpen(false);
+    } catch (e: any) {
+      message.error(e?.response?.data?.message ?? '수정 중 오류가 발생했습니다.');
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
+  // 수정 모달에서 선택 가능한 Role (기존 것 or 현재 편집 대상 제외)
+  const getEditableRoles = (menuId: string, originalRoleId: string) => {
+    const existing = (mappings[menuId] ?? []).filter((id) => id !== originalRoleId);
+    return roles.filter((r) => !existing.includes(r.role_id));
+  };
+
   // ── 컬럼 정의 ────────────────────────────────────────────────────────
   const columns = [
     {
@@ -200,15 +289,21 @@ export default function MenuRolePage() {
       title:  '메뉴명',
       key:    'menu_nm',
       render: (_: any, r: MappingRow) => (
-        <Space>
-          {r.menu.menu_depth === 2 && (
-            <Text type="secondary" style={{ fontSize: 11 }}>{'\u2514'}</Text>
-          )}
-          <Text strong style={{ fontSize: 13 }}>{r.menu.menu_nm}</Text>
-          <Tag color={r.menu.menu_depth === 1 ? 'blue' : 'green'} style={{ fontSize: 11 }}>
-            {r.menu.menu_depth === 1 ? 'GNB' : 'LNB'}
-          </Tag>
-        </Space>
+        <Tooltip title="수정" mouseEnterDelay={0.3}>
+          <Space
+            className="clickable-cell"
+            onClick={() => openEdit(r)}
+            style={{ cursor: 'pointer' }}
+          >
+            {r.menu.menu_depth === 2 && (
+              <Text type="secondary" style={{ fontSize: 11 }}>{'\u2514'}</Text>
+            )}
+            <Text strong style={{ fontSize: 13 }}>{r.menu.menu_nm}</Text>
+            <Tag color={r.menu.menu_depth === 1 ? 'blue' : 'green'} style={{ fontSize: 11 }}>
+              {r.menu.menu_depth === 1 ? 'GNB' : 'LNB'}
+            </Tag>
+          </Space>
+        </Tooltip>
       ),
     },
     {
@@ -217,9 +312,16 @@ export default function MenuRolePage() {
       width:  130,
       render: (_: any, r: MappingRow) =>
         r.menu.menu_depth === 2 ? (
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            {getParentName(r.menu.parent_menu_id)}
-          </Text>
+          <Tooltip title="수정" mouseEnterDelay={0.3}>
+            <Text
+              type="secondary"
+              className="clickable-text"
+              style={{ fontSize: 12, cursor: 'pointer' }}
+              onClick={() => openEdit(r)}
+            >
+              {getParentName(r.menu.parent_menu_id)}
+            </Text>
+          </Tooltip>
         ) : (
           <Text type="secondary">-</Text>
         ),
@@ -228,7 +330,15 @@ export default function MenuRolePage() {
       title:  'URL',
       key:    'menu_url',
       render: (_: any, r: MappingRow) => (
-        <code style={{ fontSize: 12 }}>{r.menu.menu_url}</code>
+        <Tooltip title="수정" mouseEnterDelay={0.3}>
+          <code
+            className="clickable-text"
+            style={{ fontSize: 12, cursor: 'pointer' }}
+            onClick={() => openEdit(r)}
+          >
+            {r.menu.menu_url}
+          </code>
+        </Tooltip>
       ),
     },
     {
@@ -236,9 +346,15 @@ export default function MenuRolePage() {
       key:    'role',
       width:  130,
       render: (_: any, r: MappingRow) => (
-        <Tag color={r.role.role_color ?? 'blue'} style={{ fontWeight: 600 }}>
-          {r.role.role_cd}
-        </Tag>
+        <Tooltip title="수정" mouseEnterDelay={0.3}>
+          <Tag
+            color={r.role.role_color ?? 'blue'}
+            style={{ fontWeight: 600, cursor: 'pointer' }}
+            onClick={() => openEdit(r)}
+          >
+            {r.role.role_cd}
+          </Tag>
+        </Tooltip>
       ),
     },
     {
@@ -246,7 +362,15 @@ export default function MenuRolePage() {
       key:    'role_nm',
       width:  120,
       render: (_: any, r: MappingRow) => (
-        <Text style={{ fontSize: 12 }}>{r.role.role_nm}</Text>
+        <Tooltip title="수정" mouseEnterDelay={0.3}>
+          <Text
+            className="clickable-text"
+            style={{ fontSize: 12, cursor: 'pointer' }}
+            onClick={() => openEdit(r)}
+          >
+            {r.role.role_nm}
+          </Text>
+        </Tooltip>
       ),
     },
     {
@@ -255,7 +379,29 @@ export default function MenuRolePage() {
       width:  80,
       align:  'center' as const,
       render: (_: any, r: MappingRow) => (
-        <Switch checked={r.menu.use_yn === 'Y'} size="small" disabled />
+        <Tooltip title={r.menu.use_yn === 'Y' ? 'ON → OFF 클릭' : 'OFF → ON 클릭'} mouseEnterDelay={0.4}>
+          <Switch
+            checked={r.menu.use_yn === 'Y'}
+            size="small"
+            loading={togglingIds.has(r.menu.menu_id)}
+            onChange={(checked) => handleToggleUseYn(r.menu, checked)}
+          />
+        </Tooltip>
+      ),
+    },
+    {
+      title:  '수정',
+      key:    'edit',
+      width:  60,
+      align:  'center' as const,
+      render: (_: any, r: MappingRow) => (
+        <Tooltip title="수정">
+          <Button
+            size="small"
+            icon={<EditOutlined />}
+            onClick={() => openEdit(r)}
+          />
+        </Tooltip>
       ),
     },
     {
@@ -472,6 +618,60 @@ export default function MenuRolePage() {
                       label: `[${r.role_cd}] ${r.role_nm}`,
                     }))
                   : []
+              }
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* ── 매핑 수정 모달 ────────────────────────────────────────── */}
+      <Modal
+        title="메뉴-Role 매핑 수정"
+        open={editOpen}
+        onOk={handleEditOk}
+        onCancel={() => { setEditOpen(false); editForm.resetFields(); }}
+        okText="저장"
+        cancelText="취소"
+        confirmLoading={editSaving}
+        destroyOnClose
+        width={480}
+      >
+        <Form form={editForm} layout="vertical" style={{ marginTop: 16 }}>
+          <Form.Item
+            name="menu_id"
+            label="메뉴 선택"
+            rules={[{ required: true, message: '메뉴를 선택하세요.' }]}
+          >
+            <Select
+              showSearch
+              placeholder="메뉴를 선택하세요"
+              optionFilterProp="label"
+              options={allMenus.map((m) => ({
+                value: m.menu_id,
+                label: `${m.menu_depth === 2 ? '└ ' : ''}${m.menu_nm} (${m.menu_url})`,
+              }))}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="role_id"
+            label="Role 선택"
+            rules={[{ required: true, message: 'Role을 선택하세요.' }]}
+          >
+            <Select
+              showSearch
+              placeholder="Role을 선택하세요"
+              optionFilterProp="label"
+              options={
+                watchEditMenuId && editRow
+                  ? getEditableRoles(watchEditMenuId, editRow.role.role_id).map((r) => ({
+                      value: r.role_id,
+                      label: `[${r.role_cd}] ${r.role_nm}`,
+                    }))
+                  : roles.map((r) => ({
+                      value: r.role_id,
+                      label: `[${r.role_cd}] ${r.role_nm}`,
+                    }))
               }
             />
           </Form.Item>

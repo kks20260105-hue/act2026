@@ -1,9 +1,13 @@
 ﻿import React, { useState } from 'react';
 import {
   Typography, Table, Space, Tag, Button, App, DatePicker,
-  Form, Modal, Input, Card, Row, Col, Avatar, Divider, Select,
+  Form, Modal, Input, Card, Avatar, Divider, Select, Pagination,
+  Tooltip,
 } from 'antd';
-import { PlusOutlined, StopOutlined, UserOutlined, SearchOutlined } from '@ant-design/icons';
+import {
+  PlusOutlined, StopOutlined, UserOutlined, SearchOutlined,
+  ControlOutlined, DoubleLeftOutlined, DoubleRightOutlined,
+} from '@ant-design/icons';
 import { useUserRoles, useGrantRole, useRevokeRole } from '../../hooks/useUserRoles';
 import { useRoles } from '../../hooks/useRoles';
 import { useUsers } from '../../hooks/useUsers';
@@ -18,37 +22,39 @@ export default function UserRolePage() {
   const { message, modal } = App.useApp();
   const { data: allRoles = [] } = useRoles();
 
-  // 사용자 목록 상태
-  const [search, setSearch] = useState('');
+  /* ────── 사용자 목록 / 검색 / 페이지 ───────────────────────────────── */
   const [searchInput, setSearchInput] = useState('');
-  const [page, setPage] = useState(1);
-  const { data: usersData, isLoading: usersLoading } = useUsers({ search, page, limit: 15 });
-  const users = usersData?.data ?? [];
-  const totalUsers = usersData?.total ?? 0;
+  const [search, setSearch]           = useState('');
+  const [page, setPage]               = useState(1);
+  const [pageSize, setPageSize]       = useState(10);
 
-  // 선택된 사용자
+  const { data: usersData, isLoading: usersLoading } = useUsers({ search, page, limit: pageSize });
+  const users      = usersData?.data  ?? [];
+  const totalUsers = usersData?.total ?? 0;
+  const lastPage   = Math.ceil(totalUsers / pageSize) || 1;
+
+  const handleSearch = () => { setSearch(searchInput.trim()); setPage(1); };
+
+  /* ────── 선택 사용자 / Role 모달 ───────────────────────────────────── */
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const targetUserId = selectedUser?.id ?? '';
 
-  // Role 관련
-  const [grantOpen, setGrantOpen] = useState(false);
-  const [form] = Form.useForm();
+  const [roleModalOpen, setRoleModalOpen] = useState(false);
+  const [grantOpen, setGrantOpen]         = useState(false);
+  const [form]                            = Form.useForm();
+
   const { data: userRoles = [], isLoading: rolesLoading } = useUserRoles(targetUserId);
-  const grantRole = useGrantRole(targetUserId);
+  const grantRole  = useGrantRole(targetUserId);
   const revokeRole = useRevokeRole(targetUserId);
 
-  const handleSearch = () => {
-    setSearch(searchInput.trim());
-    setPage(1);
-  };
-
-  const handleSelectUser = (user: UserProfile) => {
+  const openRoleModal = (user: UserProfile) => {
     setSelectedUser(user);
+    setRoleModalOpen(true);
   };
 
   const handleRevoke = (ur: UserRole) => {
     modal.confirm({
-      title: `"${ur.tb_role?.role_nm}" Role을 회수하시겠습니까?`,
+      title:  `"${ur.tb_role?.role_nm}" Role을 회수하시겠습니까?`,
       okType: 'danger',
       onOk: async () => {
         try {
@@ -65,9 +71,9 @@ export default function UserRolePage() {
     const values = await form.validateFields();
     try {
       await grantRole.mutateAsync({
-        role_id: values.role_id,
+        role_id:  values.role_id,
         start_dt: values.start_dt ? values.start_dt.format('YYYY-MM-DD') : undefined,
-        end_dt: values.end_dt ? values.end_dt.format('YYYY-MM-DD') : undefined,
+        end_dt:   values.end_dt   ? values.end_dt.format('YYYY-MM-DD')   : undefined,
       });
       message.success('Role이 부여되었습니다.');
       setGrantOpen(false);
@@ -77,16 +83,23 @@ export default function UserRolePage() {
     }
   };
 
-  // 사용자 목록 컬럼
-  const userColumns = [
+  /* ────── 테이블 컬럼 ───────────────────────────────────────────────── */
+  const columns = [
+    {
+      title:  'No',
+      key:    'no',
+      width:  55,
+      align:  'center' as const,
+      render: (_: any, __: UserProfile, index: number) => (page - 1) * pageSize + index + 1,
+    },
     {
       title: '사용자',
-      key: 'user',
+      key:   'user',
       render: (_: any, r: UserProfile) => (
         <Space>
           <Avatar size="small" icon={<UserOutlined />} style={{ background: '#1677ff' }} />
           <span>
-            <Text strong style={{ fontSize: 13 }}>{r.username ?? '-'}</Text>
+            <Text strong style={{ fontSize: 13 }}>{r.display_name ?? r.name ?? r.username ?? '-'}</Text>
             <br />
             <Text type="secondary" style={{ fontSize: 11 }}>{r.email}</Text>
           </span>
@@ -94,21 +107,29 @@ export default function UserRolePage() {
       ),
     },
     {
-      title: '부서',
-      dataIndex: 'dept_nm',
-      width: 100,
-      render: (v: string | null) => v ?? '-',
+      title:     '부서',
+      dataIndex: 'department',
+      key:       'department',
+      width:     120,
+      render:    (v: string | null) => v ? <Text style={{ fontSize: 12 }}>{v}</Text> : <Text type="secondary">-</Text>,
     },
     {
-      title: 'Role',
-      key: 'roles',
-      width: 160,
+      title:     '직급',
+      dataIndex: 'position_nm',
+      key:       'position_nm',
+      width:     100,
+      render:    (v: string | null) => v ? <Text style={{ fontSize: 12 }}>{v}</Text> : <Text type="secondary">-</Text>,
+    },
+    {
+      title:  'Role',
+      key:    'roles',
+      width:  180,
       render: (_: any, r: UserProfile) => {
-        const activeRoles = (r.tb_user_role ?? []).filter((ur) => ur.use_yn === 'Y');
-        if (activeRoles.length === 0) return <Text type="secondary">-</Text>;
+        const active = (r.tb_user_role ?? []).filter((ur) => ur.use_yn === 'Y');
+        if (active.length === 0) return <Text type="secondary">-</Text>;
         return (
           <Space size={2} wrap>
-            {activeRoles.map((ur) =>
+            {active.map((ur) =>
               ur.tb_role ? (
                 <Tag key={ur.role_id} color={ur.tb_role.role_color ?? 'blue'} style={{ fontSize: 11 }}>
                   {ur.tb_role.role_cd}
@@ -120,50 +141,70 @@ export default function UserRolePage() {
       },
     },
     {
-      title: '가입일',
+      title:     '가입일',
       dataIndex: 'created_at',
-      width: 100,
-      render: (v: string) => dayjs(v).format('YYYY-MM-DD'),
+      key:       'created_at',
+      width:     105,
+      align:     'center' as const,
+      render:    (v: string) => <Text style={{ fontSize: 12 }}>{dayjs(v).format('YYYY-MM-DD')}</Text>,
+    },
+    {
+      title:  '관리',
+      key:    'action',
+      width:  105,
+      align:  'center' as const,
+      render: (_: any, r: UserProfile) => (
+        <Tooltip title="Role 관리">
+          <Button
+            size="small"
+            icon={<ControlOutlined />}
+            onClick={() => openRoleModal(r)}
+          >
+            Role 관리
+          </Button>
+        </Tooltip>
+      ),
     },
   ];
 
-  // 선택 사용자의 Role 컬럼
+  /* ────── Role 모달 내 컬럼 ─────────────────────────────────────────── */
   const roleColumns = [
     {
-      title: 'Role',
-      key: 'role',
+      title:  'Role',
+      key:    'role',
       render: (_: any, r: UserRole) => (
         <Tag color={r.tb_role?.role_color ?? 'blue'}>{r.tb_role?.role_nm ?? r.role_id}</Tag>
       ),
     },
-    { title: '시작일', dataIndex: 'start_dt', width: 110 },
+    { title: '시작일', dataIndex: 'start_dt', width: 105 },
     {
-      title: '만료일',
+      title:  '만료일',
       dataIndex: 'end_dt',
-      width: 110,
-      render: (v: string | null) => v ?? '∞ (무기한)',
+      width:  115,
+      render: (v: string | null) => v ?? '∞ 무기한',
     },
     {
-      title: '상태',
-      key: 'status',
-      width: 80,
+      title:  '상태',
+      key:    'status',
+      width:  70,
+      align:  'center' as const,
       render: (_: any, r: UserRole) => {
         const expired = r.end_dt && dayjs(r.end_dt).isBefore(dayjs(), 'day');
         return <Tag color={expired ? 'red' : 'green'}>{expired ? '만료' : '활성'}</Tag>;
       },
     },
     {
-      title: '회수',
-      key: 'revoke',
-      width: 80,
+      title:  '회수',
+      key:    'revoke',
+      width:  75,
+      align:  'center' as const,
       render: (_: any, r: UserRole) => (
-        <Button size="small" danger icon={<StopOutlined />} onClick={() => handleRevoke(r)}>
-          회수
-        </Button>
+        <Button size="small" danger icon={<StopOutlined />} onClick={() => handleRevoke(r)} />
       ),
     },
   ];
 
+  /* ────── 렌더 ──────────────────────────────────────────────────────── */
   return (
     <PageLayout
       breadcrumbs={[
@@ -175,120 +216,169 @@ export default function UserRolePage() {
     >
       <Title level={4} style={{ marginBottom: 16 }}>사용자-Role 관리</Title>
 
-      <Row gutter={16}>
-        {/* 좌측: 사용자 목록 */}
-        <Col xs={24} lg={14}>
-          <Card
-            size="small"
-            title="사용자 목록"
-            extra={
-              <Space>
-                <Input
-                  placeholder="이름 / 이메일 / 부서 검색"
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  onPressEnter={handleSearch}
-                  style={{ width: 220 }}
-                  suffix={
-                    <SearchOutlined style={{ cursor: 'pointer' }} onClick={handleSearch} />
-                  }
-                />
-              </Space>
-            }
-          >
-            <Table<UserProfile>
-              rowKey="id"
-              columns={userColumns}
-              dataSource={users}
-              loading={usersLoading}
-              size="small"
-              pagination={{
-                current: page,
-                pageSize: 15,
-                total: totalUsers,
-                onChange: (p: number) => setPage(p),
-                showTotal: (t: number) => `총 ${t}명`,
-                size: 'small',
-              }}
-              onRow={(record) => ({
-                onClick: () => handleSelectUser(record),
-                style: {
-                  cursor: 'pointer',
-                  background: selectedUser?.id === record.id ? '#e6f4ff' : undefined,
-                },
-              })}
+      <Card
+        size="small"
+        title={
+          <Space>
+            <Input
+              placeholder="이름 / 이메일 / 부서 검색"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onPressEnter={handleSearch}
+              style={{ width: 240 }}
+              suffix={
+                <SearchOutlined style={{ cursor: 'pointer' }} onClick={handleSearch} />
+              }
+              allowClear
+              onClear={() => { setSearchInput(''); setSearch(''); setPage(1); }}
             />
-          </Card>
-        </Col>
-
-        {/* 우측: 선택 사용자 Role */}
-        <Col xs={24} lg={10}>
-          <Card
+          </Space>
+        }
+      >
+        <Table<UserProfile>
+          rowKey="id"
+          columns={columns}
+          dataSource={users}
+          loading={usersLoading}
+          size="small"
+          bordered
+          pagination={false}
+        />
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 16 }}>
+          <Pagination
+            current={page}
+            pageSize={pageSize}
+            total={totalUsers}
+            onChange={(p) => setPage(p)}
+            showSizeChanger={false}
+            showTotal={(t) => `총 ${t}명`}
             size="small"
-            title={
-              selectedUser
-                ? `${selectedUser.username ?? selectedUser.email} 님의 Role`
-                : 'Role 관리 (사용자 선택 후 확인)'
-            }
-            extra={
-              selectedUser && (
-                <Button
-                  type="primary"
-                  size="small"
-                  icon={<PlusOutlined />}
-                  onClick={() => setGrantOpen(true)}
-                >
-                  Role 부여
-                </Button>
-              )
-            }
-          >
-            {selectedUser ? (
-              <>
-                <Space style={{ marginBottom: 12 }}>
-                  <Avatar icon={<UserOutlined />} style={{ background: '#1677ff' }} />
-                  <span>
-                    <Text strong>{selectedUser.username ?? '-'}</Text>
-                    <br />
-                    <Text type="secondary" style={{ fontSize: 12 }}>{selectedUser.email}</Text>
-                    {selectedUser.dept_nm && (
-                      <Tag style={{ marginLeft: 8 }}>{selectedUser.dept_nm}</Tag>
-                    )}
+            itemRender={(_, type, originalElement) => {
+              if (type === 'prev') {
+                const disabled = page <= 1;
+                return (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', columnGap: 8 }}>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); if (!disabled) setPage(1); }}
+                      disabled={disabled}
+                      className="ant-pagination-item-link"
+                      aria-label="first-page"
+                      title="첫 페이지"
+                    >
+                      <DoubleLeftOutlined />
+                    </button>
+                    {originalElement}
                   </span>
-                </Space>
-                <Divider style={{ margin: '8px 0' }} />
-                <Table<UserRole>
-                  rowKey="user_role_id"
-                  columns={roleColumns}
-                  dataSource={userRoles}
-                  loading={rolesLoading}
-                  pagination={false}
-                  size="small"
-                  bordered
-                  locale={{ emptyText: '부여된 Role이 없습니다.' }}
-                />
-              </>
-            ) : (
-              <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>
-                좌측 목록에서 사용자를 클릭하세요
-              </div>
-            )}
-          </Card>
-        </Col>
-      </Row>
+                );
+              }
+              if (type === 'next') {
+                const disabled = page >= lastPage;
+                return (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', columnGap: 8 }}>
+                    {originalElement}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); if (!disabled) setPage(lastPage); }}
+                      disabled={disabled}
+                      className="ant-pagination-item-link"
+                      aria-label="last-page"
+                      title="마지막 페이지"
+                    >
+                      <DoubleRightOutlined />
+                    </button>
+                  </span>
+                );
+              }
+              return originalElement;
+            }}
+          />
+          <Select
+            value={pageSize}
+            onChange={(v) => { setPageSize(v); setPage(1); }}
+            style={{ width: 95 }}
+            size="small"
+            options={[
+              { value: 2,    label: '2개' },
+              { value: 3,    label: '3개' },
+              { value: 5,    label: '5개' },
+              { value: 10,   label: '10개' },
+              { value: 15,   label: '15개' },              
+              { value: 20,   label: '20개' },              
+              { value: 30,   label: '30개' },
+              { value: 50,   label: '50개' },
+              { value: 100,  label: '100개' },
+              { value: 500,  label: '500개' },
+              { value: 1000, label: '1000개' },
+            ]}
+          />
+        </div>
+      </Card>
 
-      {/* Role 부여 모달 */}
+      {/* ── Role 관리 모달 ─────────────────────────────────────────────── */}
       <Modal
-        title={`Role 부여 — ${selectedUser?.username ?? selectedUser?.email ?? ''}`}
+        title={
+          <Space>
+            <Avatar size="small" icon={<UserOutlined />} style={{ background: '#1677ff' }} />
+            <span>
+              {selectedUser?.display_name ?? selectedUser?.name ?? selectedUser?.username ?? selectedUser?.email ?? ''} 님의 Role 관리
+            </span>
+          </Space>
+        }
+        open={roleModalOpen}
+        onCancel={() => { setRoleModalOpen(false); setGrantOpen(false); form.resetFields(); }}
+        footer={null}
+        width={600}
+        destroyOnClose
+      >
+        {selectedUser && (
+          <>
+            <Space style={{ marginBottom: 12 }}>
+              <Avatar icon={<UserOutlined />} style={{ background: '#1677ff' }} />
+              <span>
+                <Text strong>{selectedUser.display_name ?? selectedUser.name ?? selectedUser.username ?? '-'}</Text>
+                {'  '}
+                <Text type="secondary" style={{ fontSize: 12 }}>{selectedUser.email}</Text>
+                {selectedUser.department && <Tag style={{ marginLeft: 8 }}>{selectedUser.department}</Tag>}
+                {selectedUser.position_nm && <Tag style={{ marginLeft: 4 }}>{selectedUser.position_nm}</Tag>}
+              </span>
+            </Space>
+            <Divider style={{ margin: '8px 0 12px' }} />
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <Text strong>보유 Role</Text>
+              <Button
+                type="primary"
+                size="small"
+                icon={<PlusOutlined />}
+                onClick={() => setGrantOpen(true)}
+              >
+                Role 부여
+              </Button>
+            </div>
+
+            <Table<UserRole>
+              rowKey="user_role_id"
+              columns={roleColumns}
+              dataSource={userRoles}
+              loading={rolesLoading}
+              pagination={false}
+              size="small"
+              bordered
+              locale={{ emptyText: '부여된 Role이 없습니다.' }}
+            />
+          </>
+        )}
+      </Modal>
+
+      {/* ── Role 부여 모달 ─────────────────────────────────────────────── */}
+      <Modal
+        title={`Role 부여 — ${selectedUser?.display_name ?? selectedUser?.name ?? selectedUser?.username ?? selectedUser?.email ?? ''}`}
         open={grantOpen}
         onOk={handleGrant}
-        onCancel={() => {
-          setGrantOpen(false);
-          form.resetFields();
-        }}
+        onCancel={() => { setGrantOpen(false); form.resetFields(); }}
         okText="부여"
         cancelText="취소"
         destroyOnClose
+        width={420}
       >
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
           <Form.Item

@@ -15,17 +15,17 @@ async function handler(req: VercelRequest, res: VercelResponse) {
   const offset   = (pageNum - 1) * limitNum;
 
   let query = supabaseAdmin
-    .from('profiles')
+    .from('users')
     .select(`
-      id, email, username, dept_nm, phone, use_yn, created_at,
-      tb_user_role(role_id, start_dt, end_dt, use_yn, tb_role(role_cd, role_nm, role_color))
+      id, email, username, name, display_name, department, position_nm, is_active, created_at,
+      tb_user_role!tb_user_role_user_id_fkey(role_id, start_dt, end_dt, use_yn, tb_role(role_cd, role_nm, role_color))
     `, { count: 'exact' })
-    .eq('use_yn', 'Y')
+    .eq('is_active', true)
     .order('created_at', { ascending: false })
     .range(offset, offset + limitNum - 1);
 
   if (search) {
-    query = query.or(`email.ilike.%${search}%,username.ilike.%${search}%,dept_nm.ilike.%${search}%`);
+    query = query.or(`email.ilike.%${search}%,username.ilike.%${search}%,name.ilike.%${search}%,department.ilike.%${search}%`);
   }
 
   const { data, error, count } = await query;
