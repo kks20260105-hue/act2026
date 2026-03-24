@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import {
   Button, Table, Space, Tag, Tooltip, Typography, Switch, App,
-  Modal, Form, Input, InputNumber, Select, Radio,
+  Modal, Form, Input, InputNumber, Select, Radio, Card,
 } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, UploadOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, UploadOutlined, SearchOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useMenuTree, useCreateMenu, useDeleteMenu } from '../../hooks/useMenuTree';
 import { menuApi } from '../../api/menuApi';
@@ -12,29 +12,49 @@ import { useQueryClient } from '@tanstack/react-query';
 import { MENU_KEYS } from '../../hooks/useMenuTree';
 import PageLayout from '../../components/layout/PageLayout';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
-import type { MenuTreeNode } from '../../types/menu';
-import type { MenuFormValues } from '../../types/menu';
+import type { Menu, MenuFormValues } from '../../types/menu';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 export default function MenuManagePage() {
   const { message, modal } = App.useApp();
   const navigate           = useNavigate();
   const { isLoading }      = useMenuTree();
-  const menuTree           = useMenuStore((s) => s.menuTree);
   const allMenus           = useMenuStore((s) => s.menus);
   const createMenu         = useCreateMenu();
   const deleteMenu         = useDeleteMenu();
   const qc                 = useQueryClient();
 
-  const [expandedKeys, setExpandedKeys]   = useState<string[]>([]);
-  const [modalOpen, setModalOpen]         = useState(false);
-  const [editing, setEditing]             = useState<MenuTreeNode | null>(null);
-  const [saving, setSaving]               = useState(false);
-  const [form]                            = Form.useForm<MenuFormValues>();
-  const watchDepth                        = Form.useWatch('menu_depth', form);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing]     = useState<Menu | null>(null);
+  const [saving, setSaving]       = useState(false);
+  const [form]                    = Form.useForm<MenuFormValues>();
+  const watchDepth                = Form.useWatch('menu_depth', form);
 
-  const gnbMenus = allMenus.filter((m) => m.menu_depth === 1);
+  // 검색 / 필터
+  const [searchText, setSearchText]   = useState('');
+  const [filterDepth, setFilterDepth] = useState<'' | '1' | '2'>('');
+
+  const gnbMenus = useMemo(() => allMenus.filter((m) => m.menu_depth === 1), [allMenus]);
+
+  const filteredMenus = useMemo(() => {
+    let list = [...allMenus];
+    if (filterDepth === '1') list = list.filter((m) => m.menu_depth === 1);
+    if (filterDepth === '2') list = list.filter((m) => m.menu_depth === 2);
+    if (searchText.trim()) {
+      const kw = searchText.trim().toLowerCase();
+      list = list.filter(
+        (m) => m.menu_nm.toLowerCase().includes(kw) || m.menu_url.toLowerCase().includes(kw),
+      );
+    }
+    return list;
+  }, [allMenus, filterDepth, searchText]);
+
+  const getParentName = (parentId: string | null) => {
+    if (!parentId) return '-';
+    const parent = allMenus.find((m) => m.menu_id === parentId);
+    return parent ? parent.menu_nm : '-';
+  };
 
   const openCreate = () => {
     setEditing(null);
@@ -43,7 +63,7 @@ export default function MenuManagePage() {
     setModalOpen(true);
   };
 
-  const openEdit = (record: MenuTreeNode) => {
+  const openEdit = (record: Menu) => {
     setEditing(record);
     form.setFieldsValue({
       menu_nm:        record.menu_nm,
@@ -92,17 +112,29 @@ export default function MenuManagePage() {
 
   const columns = [
     {
-      title:     '메뉴명',
-      dataIndex: 'menu_nm',
-      key:       'menu_nm',
-      render: (text: string, record: MenuTreeNode) => (
+      title: '메뉴명',
+      key:   'menu_nm',
+      render: (_: any, r: Menu) => (
         <Space>
-          <span>{text}</span>
-          <Tag color={record.menu_depth === 1 ? 'blue' : 'green'}>
-            {record.menu_depth === 1 ? 'GNB' : 'LNB'}
+          <Text strong style={{ fontSize: 13 }}>{r.menu_nm}</Text>
+          <Tag color={r.menu_depth === 1 ? 'blue' : 'green'} style={{ fontSize: 11 }}>
+            {r.menu_depth === 1 ? 'GNB' : 'LNB'}
           </Tag>
         </Space>
       ),
+    },
+    {
+      title:  '상위 메뉴',
+      key:    'parent',
+      width:  130,
+      render: (_: any, r: Menu) =>
+        r.menu_depth === 2 ? (
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {'\u2514 '}{getParentName(r.parent_menu_id)}
+          </Text>
+        ) : (
+          <Text type="secondary">-</Text>
+        ),
     },
     {
       title:     'URL',
@@ -114,7 +146,7 @@ export default function MenuManagePage() {
       title:     '순서',
       dataIndex: 'menu_order',
       key:       'menu_order',
-      width:     70,
+      width:     60,
       align:     'center' as const,
     },
     {
@@ -122,25 +154,26 @@ export default function MenuManagePage() {
       key:    'use_yn',
       width:  70,
       align:  'center' as const,
-      render: (_: unknown, record: MenuTreeNode) => (
-        <Switch checked={record.use_yn === 'Y'} size="small" disabled />
+      render: (_: any, r: Menu) => (
+        <Switch checked={r.use_yn === 'Y'} size="small" disabled />
       ),
     },
     {
       title:  '관리',
       key:    'action',
-      width:  110,
-      render: (_: unknown, record: MenuTreeNode) => (
+      width:  100,
+      align:  'center' as const,
+      render: (_: any, r: Menu) => (
         <Space>
           <Tooltip title="수정">
-            <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(record)} />
+            <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(r)} />
           </Tooltip>
           <Tooltip title="삭제">
             <Button
               size="small"
               danger
               icon={<DeleteOutlined />}
-              onClick={() => handleDelete(record.menu_id, record.menu_nm)}
+              onClick={() => handleDelete(r.menu_id, r.menu_nm)}
             />
           </Tooltip>
         </Space>
@@ -152,35 +185,63 @@ export default function MenuManagePage() {
 
   return (
     <PageLayout
-      breadcrumbs={[{ title: '홈', href: '/' }, { title: '관리' }, { title: '메뉴 관리' }]}
+      breadcrumbs={[
+        { title: '홈', href: '/' },
+        { title: '관리' },
+        { title: '메뉴 관리' },
+      ]}
       parentMenuUrl="/admin"
     >
-      <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }} align="center">
-        <Title level={4} style={{ margin: 0 }}>메뉴 관리</Title>
-        <Space>
-          <Button icon={<UploadOutlined />} onClick={() => navigate('/admin/menu-upload')}>
-            엑셀 업로드
-          </Button>
-          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-            메뉴 추가
-          </Button>
-        </Space>
-      </Space>
+      <Title level={4} style={{ marginBottom: 16 }}>메뉴 관리</Title>
 
-      <Table
-        rowKey="menu_id"
-        columns={columns}
-        dataSource={menuTree}
-        expandable={{
-          expandedRowKeys: expandedKeys,
-          onExpandedRowsChange: (keys) => setExpandedKeys(keys as string[]),
-          defaultExpandAllRows: true,
-          childrenColumnName: 'children',
-        }}
-        pagination={false}
+      <Card
         size="small"
-        bordered
-      />
+        title={
+          <Space>
+            <Select
+              value={filterDepth}
+              onChange={(v) => setFilterDepth(v as '' | '1' | '2')}
+              style={{ width: 110 }}
+              options={[
+                { value: '', label: '전체' },
+                { value: '1', label: 'GNB만' },
+                { value: '2', label: 'LNB만' },
+              ]}
+            />
+            <Input
+              placeholder="메뉴명 / URL 검색"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              style={{ width: 220 }}
+              suffix={<SearchOutlined />}
+              allowClear
+            />
+          </Space>
+        }
+        extra={
+          <Space>
+            <Button icon={<UploadOutlined />} onClick={() => navigate('/admin/menu-upload')}>
+              엑셀 업로드
+            </Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+              메뉴 추가
+            </Button>
+          </Space>
+        }
+      >
+        <Table<Menu>
+          rowKey="menu_id"
+          columns={columns}
+          dataSource={filteredMenus}
+          pagination={{
+            pageSize: 20,
+            showTotal: (t: number) => `총 ${t}개`,
+            size: 'small',
+          }}
+          size="small"
+          bordered
+        />
+      </Card>
 
       {/* 메뉴 추가 / 수정 모달 */}
       <Modal
