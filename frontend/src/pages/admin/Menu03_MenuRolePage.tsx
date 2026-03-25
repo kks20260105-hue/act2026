@@ -32,7 +32,7 @@ interface MappingRow {
   roles: Role[];   // ROLE_CD_ORDER 정렬된 배열
 }
 
-export default function MenuRolePage() {
+export default function Menu03_MenuRolePage() {
   const { message, modal }             = App.useApp();
   const qc                              = useQueryClient();
   const { isLoading: mLoading }        = useMenuTree();

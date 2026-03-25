@@ -36,7 +36,7 @@ const COLOR_OPTIONS = [
   { value: 'magenta',    label: 'Magenta' },
 ];
 
-export default function RoleManagePage() {
+export default function Menu02_RoleManagePage() {
   const { message, modal } = App.useApp();
   const qc                  = useQueryClient();
   const { data: roles = [], isLoading } = useRoles();

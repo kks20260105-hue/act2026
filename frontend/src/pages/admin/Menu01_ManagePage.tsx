@@ -24,7 +24,7 @@ import type { Menu, MenuFormValues } from '../../types/menu';
 
 const { Title, Text } = Typography;
 
-export default function MenuManagePage() {
+export default function Menu01_ManagePage() {
   const { message, modal } = App.useApp();
   const navigate           = useNavigate();
   const { isLoading }      = useMenuTree();

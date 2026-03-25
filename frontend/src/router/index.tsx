@@ -12,11 +12,11 @@ const OAuthCallbackPage  = lazy(() => import('../pages/OAuthCallbackPage'));
 const HomePage           = lazy(() => import('../pages/HomePage'));
 const ForbiddenPage    = lazy(() => import('../pages/ForbiddenPage'));
 const NotFoundPage     = lazy(() => import('../pages/NotFoundPage'));
-const MenuManagePage   = lazy(() => import('../pages/admin/MenuManagePage'));
+const Menu01_ManagePage   = lazy(() => import('../pages/admin/Menu01_ManagePage'));
 const MenuUploadPage   = lazy(() => import('../pages/admin/MenuUploadPage'));
-const RoleManagePage   = lazy(() => import('../pages/admin/RoleManagePage'));
-const MenuRolePage     = lazy(() => import('../pages/admin/MenuRolePage'));
-const UserRolePage     = lazy(() => import('../pages/admin/UserRolePage'));
+const Menu02_RoleManagePage   = lazy(() => import('../pages/admin/Menu02_RoleManagePage'));
+const Menu03_MenuRolePage     = lazy(() => import('../pages/admin/Menu03_MenuRolePage'));
+const Menu04_MenuRolePage     = lazy(() => import('../pages/admin/Menu04_UserRolePage'));
 
 const Loading = () => <LoadingSpinner fullPage />;
 
@@ -53,11 +53,11 @@ const router = createBrowserRouter([
         // ADMIN 이상 전용
         element: <RoleRoute roles={['SUPER_ADMIN', 'ADMIN']} />,
         children: [
-          { path: '/admin/menus',      element: <Suspense fallback={<Loading />}><MenuManagePage /></Suspense> },
+          { path: '/admin/menus',      element: <Suspense fallback={<Loading />}><Menu01_ManagePage /></Suspense> },
           { path: '/admin/menu-upload', element: <Suspense fallback={<Loading />}><MenuUploadPage /></Suspense> },
-          { path: '/admin/roles',      element: <Suspense fallback={<Loading />}><RoleManagePage /></Suspense> },
-          { path: '/admin/menu-roles', element: <Suspense fallback={<Loading />}><MenuRolePage /></Suspense> },
-          { path: '/admin/user-roles', element: <Suspense fallback={<Loading />}><UserRolePage /></Suspense> },
+          { path: '/admin/roles',      element: <Suspense fallback={<Loading />}><Menu02_RoleManagePage /></Suspense> },
+          { path: '/admin/menu-roles', element: <Suspense fallback={<Loading />}><Menu03_MenuRolePage /></Suspense> },
+          { path: '/admin/user-roles', element: <Suspense fallback={<Loading />}><Menu04_MenuRolePage /></Suspense> },
         ],
       },
     ],
