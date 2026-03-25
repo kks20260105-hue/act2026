@@ -112,7 +112,7 @@ const LoginPage: React.FC = () => {
       >
         {/* ── 타이틀 ── */}
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <Title level={4} style={{ margin: 0, color: '#1a1a1a' }}>KKS Portal</Title>
+          <Title level={4} style={{ margin: 0, color: '#1a1a1a' }}>Portal Service</Title>
           <Text style={{ fontSize: 12, color: '#6a6a6a' }}>서비스를 이용하시려면 로그인하세요.</Text>
         </div>
 
@@ -191,7 +191,7 @@ const LoginPage: React.FC = () => {
 
         {/* ── 하단 카피라이트 ── */}
         <div style={{ textAlign: 'center', marginTop: 14 }}>
-          <Text style={{ fontSize: 11, color: '#ccc' }}>© 2026 KKS Portal Service. All rights reserved.</Text>
+          <Text style={{ fontSize: 11, color: '#ccc' }}>© 2026 Portal Service. All rights reserved.</Text>
         </div>
       </Card>
     </div>

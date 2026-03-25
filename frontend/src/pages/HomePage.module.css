@@ -5,6 +5,50 @@
   margin:    0 auto;
 }
 
+/* ── 배너 캐러셀 ─────────────────────────────────────────────────── */
+.bannerWrap {
+  margin: 20px 0 32px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+}
+
+.bannerSlide {
+  height: 240px;
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.bannerIcon {
+  line-height: 1;
+}
+
+.bannerTitle {
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.25);
+}
+
+.bannerSub {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+/* dot 커스텀 */
+.bannerWrap :global(.slick-dots li button) {
+  background: rgba(255, 255, 255, 0.6) !important;
+}
+.bannerWrap :global(.slick-dots li.slick-active button) {
+  background: #fff !important;
+}
+
 .adminSection {
   margin-top: 32px;
 }

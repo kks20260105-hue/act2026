@@ -9,3 +9,20 @@
   height:       100%;
   border-right: 0;
 }
+
+/* GNB 제목 헤더 */
+.gnbHeader {
+  display:         flex;
+  align-items:     center;
+  gap:             8px;
+  padding:         14px 16px 10px;
+  border-bottom:   1px solid #f0f0f0;
+  background:      #fafafa;
+}
+
+.gnbIcon {
+  font-size:  16px;
+  color:      #1677ff;
+  display:    flex;
+  align-items: center;
+}

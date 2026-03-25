@@ -293,14 +293,26 @@ export default function RoleManagePage() {
           </Button>
         }
       >
-        <Table<Role>
-          rowKey="role_id"
-          columns={columns}
-          dataSource={filteredRoles.slice((page - 1) * pageSize, page * pageSize)}
-          pagination={false}
-          size="small"
-          bordered
-        />
+        <style>{`
+          .compact-role-table .ant-table-cell {
+            padding: 3px 6px !important;
+            line-height: 1.3 !important;
+          }
+          .compact-role-table .ant-table-thead .ant-table-cell {
+            padding: 4px 6px !important;
+            font-size: 11px !important;
+          }
+        `}</style>
+        <div style={{ overflowX: 'scroll' }} className="compact-role-table">
+          <Table<Role>
+            rowKey="role_id"
+            columns={columns}
+            dataSource={filteredRoles.slice((page - 1) * pageSize, page * pageSize)}
+            pagination={false}
+            size="small"
+            bordered
+          />
+        </div>
 
         {/* 커스텀 페이지네이션 */}
         <div

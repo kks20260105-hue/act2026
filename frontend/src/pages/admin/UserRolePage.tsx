@@ -235,15 +235,27 @@ export default function UserRolePage() {
           </Space>
         }
       >
-        <Table<UserProfile>
-          rowKey="id"
-          columns={columns}
-          dataSource={users}
-          loading={usersLoading}
-          size="small"
-          bordered
-          pagination={false}
-        />
+        <style>{`
+          .compact-user-table .ant-table-cell {
+            padding: 3px 6px !important;
+            line-height: 1.3 !important;
+          }
+          .compact-user-table .ant-table-thead .ant-table-cell {
+            padding: 4px 6px !important;
+            font-size: 11px !important;
+          }
+        `}</style>
+        <div style={{ overflowX: 'scroll' }} className="compact-user-table">
+          <Table<UserProfile>
+            rowKey="id"
+            columns={columns}
+            dataSource={users}
+            loading={usersLoading}
+            size="small"
+            bordered
+            pagination={false}
+          />
+        </div>
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 16 }}>
           <Pagination
             current={page}

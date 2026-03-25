@@ -37,7 +37,8 @@ export default function MenuManagePage() {
   const [editing, setEditing]     = useState<Menu | null>(null);
   const [saving, setSaving]       = useState(false);
   const [form]                    = Form.useForm<MenuFormValues>();
-  const watchDepth                = Form.useWatch('menu_depth', form);
+  const watchDepth    = Form.useWatch('menu_depth', form);
+  const watchParentId = Form.useWatch('parent_menu_id', form);
 
   // use_yn 토글 (Switch 직접 클릭)
   const [togglingId, setTogglingId] = useState<string | null>(null);
@@ -63,16 +64,53 @@ export default function MenuManagePage() {
 
   const gnbMenus = useMemo(() => allMenus.filter((m) => m.menu_depth === 1), [allMenus]);
 
+  // ── 트리 정렬 / depth 표시 헬퍼 ──────────────────────────────────
+  const getSortKey = (menu: Menu): string => {
+    const padded = String(menu.menu_order ?? 0).padStart(5, '0');
+    if (!menu.parent_menu_id) return padded;
+    const parent = allMenus.find((m) => m.menu_id === menu.parent_menu_id);
+    return parent ? `${getSortKey(parent)}.${padded}` : padded;
+  };
+
+  const getIndentPrefix = (depth: number): string =>
+    depth > 1 ? '\u00a0\u00a0\u00a0\u00a0'.repeat(depth - 1) + '\u2514 ' : '';
+
+  const getDepthTag = (depth: number): { label: string; color: string } => {
+    if (depth === 1) return { label: 'GNB', color: 'blue' };
+    if (depth === 2) return { label: 'LNB', color: 'green' };
+    return { label: `L${depth}`, color: 'purple' };
+  };
+
+  /** 모달 상위 메뉴 콤보박스 옵션 (트리 정렬 + └ 들여쓰기, 수정 시 자기·하위 제외) */
+  const parentMenuOptions = useMemo(() => {
+    const excludeIds = new Set<string>();
+    if (editing) {
+      const collect = (id: string) => {
+        excludeIds.add(id);
+        allMenus.filter((m) => m.parent_menu_id === id).forEach((m) => collect(m.menu_id));
+      };
+      collect(editing.menu_id);
+    }
+    return [...allMenus]
+      .filter((m) => !excludeIds.has(m.menu_id))
+      .sort((a, b) => getSortKey(a).localeCompare(getSortKey(b)))
+      .map((m) => ({
+        value: m.menu_id,
+        label: `${getIndentPrefix(m.menu_depth)}${m.menu_nm}  (${m.menu_url})`,
+      }));
+  }, [allMenus, editing]);
+
   const filteredMenus = useMemo(() => {
     let list = [...allMenus];
-    if (filterDepth === '1') list = list.filter((m) => m.menu_depth === 1);
-    if (filterDepth === '2') list = list.filter((m) => m.menu_depth === 2);
+    if (filterDepth === '1')  list = list.filter((m) => m.menu_depth === 1);
+    if (filterDepth === '2')  list = list.filter((m) => m.menu_depth >= 2);
     if (searchText.trim()) {
       const kw = searchText.trim().toLowerCase();
       list = list.filter(
         (m) => m.menu_nm.toLowerCase().includes(kw) || m.menu_url.toLowerCase().includes(kw),
       );
     }
+    list.sort((a, b) => getSortKey(a).localeCompare(getSortKey(b)));
     return list;
   }, [allMenus, filterDepth, searchText]);
 
@@ -147,41 +185,42 @@ export default function MenuManagePage() {
     {
       title: '메뉴명',
       key:   'menu_nm',
-      render: (_: any, r: Menu) => (
-        <Tooltip title="수정">
-          <Space
-            style={{ cursor: 'pointer' }}
-            onClick={() => openEdit(r)}
-            className="clickable-cell"
-          >
-            <Text
-              strong
-              style={{ fontSize: 13 }}
-              className="clickable-text"
+      render: (_: any, r: Menu) => {
+        const prefix = getIndentPrefix(r.menu_depth);
+        const tag    = getDepthTag(r.menu_depth);
+        return (
+          <Tooltip title="수정">
+            <Space
+              style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}
+              onClick={() => openEdit(r)}
+              className="clickable-cell"
             >
-              {r.menu_nm}
-            </Text>
-            <Tag color={r.menu_depth === 1 ? 'blue' : 'green'} style={{ fontSize: 11 }}>
-              {r.menu_depth === 1 ? 'GNB' : 'LNB'}
-            </Tag>
-          </Space>
-        </Tooltip>
-      ),
+              {prefix && (
+                <Text type="secondary" style={{ fontSize: 10, fontFamily: 'monospace', whiteSpace: 'pre' }}>{prefix}</Text>
+              )}
+              <Text strong={r.menu_depth === 1} style={{ fontSize: 11 }} className="clickable-text">
+                {r.menu_nm}
+              </Text>
+              <Tag color={tag.color} style={{ fontSize: 9 }}>{tag.label}</Tag>
+            </Space>
+          </Tooltip>
+        );
+      },
     },
     {
       title:  '상위 메뉴',
       key:    'parent',
       width:  130,
       render: (_: any, r: Menu) =>
-        r.menu_depth === 2 ? (
+        r.menu_depth > 1 ? (
           <Tooltip title="수정">
             <Text
               type="secondary"
-              style={{ fontSize: 12, cursor: 'pointer' }}
+              style={{ fontSize: 10, cursor: 'pointer' }}
               className="clickable-text"
               onClick={() => openEdit(r)}
             >
-              {'\u2514 '}{getParentName(r.parent_menu_id)}
+              {getParentName(r.parent_menu_id)}
             </Text>
           </Tooltip>
         ) : (
@@ -195,7 +234,7 @@ export default function MenuManagePage() {
       render:    (url: string, r: Menu) => (
         <Tooltip title="수정">
           <code
-            style={{ fontSize: 12, cursor: 'pointer' }}
+            style={{ fontSize: 10, cursor: 'pointer' }}
             onClick={() => openEdit(r)}
             className="clickable-text"
           >
@@ -274,7 +313,7 @@ export default function MenuManagePage() {
               options={[
                 { value: '', label: '전체' },
                 { value: '1', label: 'GNB만' },
-                { value: '2', label: 'LNB만' },
+                { value: '2', label: '하위메뉴만' },
               ]}
             />
             <Input
@@ -298,14 +337,27 @@ export default function MenuManagePage() {
           </Space>
         }
       >
-        <Table<Menu>
-          rowKey="menu_id"
-          columns={columns}
-          dataSource={filteredMenus.slice((page - 1) * pageSize, page * pageSize)}
-          pagination={false}
-          size="small"
-          bordered
-        />
+        <style>{`
+          .compact-menu-table .ant-table-cell {
+            padding: 3px 6px !important;
+            line-height: 1.3 !important;
+          }
+          .compact-menu-table .ant-table-thead .ant-table-cell {
+            padding: 4px 6px !important;
+            font-size: 11px !important;
+          }
+        `}</style>
+        <div style={{ overflowX: 'scroll' }} className="compact-menu-table">
+          <Table<Menu>
+            rowKey="menu_id"
+            columns={columns}
+            dataSource={filteredMenus.slice((page - 1) * pageSize, page * pageSize)}
+            pagination={false}
+            size="small"
+            bordered
+            style={{ minWidth: 700 }}
+          />
+        </div>
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 16 }}>
           <Pagination
             current={page}
@@ -389,32 +441,38 @@ export default function MenuManagePage() {
       >
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
 
-          <Form.Item name="menu_depth" label="메뉴 구분" rules={[{ required: true }]}>
-            <Radio.Group
-              onChange={() => form.setFieldValue('parent_menu_id', undefined)}
-              optionType="button"
-              buttonStyle="solid"
-            >
-              <Radio.Button value={1}>GNB (상단 메뉴)</Radio.Button>
-              <Radio.Button value={2}>LNB (좌측 메뉴)</Radio.Button>
-            </Radio.Group>
-          </Form.Item>
+          {/* menu_depth 자동 계산 히든 필드 */}
+          <Form.Item name="menu_depth" hidden><Input /></Form.Item>
 
-          {watchDepth === 2 && (
-            <Form.Item
-              name="parent_menu_id"
-              label="상위 GNB 메뉴"
-              rules={[{ required: true, message: '상위 GNB 메뉴를 선택하세요.' }]}
-            >
-              <Select placeholder="상위 GNB 메뉴 선택" allowClear>
-                {gnbMenus.map((g) => (
-                  <Select.Option key={g.menu_id} value={g.menu_id}>
-                    {g.menu_nm} ({g.menu_url})
-                  </Select.Option>
-                ))}
-              </Select>
-            </Form.Item>
-          )}
+          <Form.Item
+            name="parent_menu_id"
+            label={
+              <Space size={6}>
+                <span>상위 메뉴</span>
+                {watchDepth && (
+                  <Tag color={watchDepth === 1 ? 'blue' : watchDepth === 2 ? 'green' : 'purple'} style={{ fontSize: 10 }}>
+                    {watchDepth === 1 ? 'GNB' : watchDepth === 2 ? 'LNB' : `L${watchDepth}`} depth {watchDepth}
+                  </Tag>
+                )}
+              </Space>
+            }
+          >
+            <Select
+              showSearch
+              allowClear
+              placeholder="선택 안 하면 GNB (depth 1) 로 등록"
+              optionFilterProp="label"
+              options={parentMenuOptions}
+              onChange={(val) => {
+                if (!val) {
+                  form.setFieldValue('menu_depth', 1);
+                } else {
+                  const parent = allMenus.find((m) => m.menu_id === val);
+                  form.setFieldValue('menu_depth', (parent?.menu_depth ?? 0) + 1);
+                }
+              }}
+            />
+          </Form.Item>
 
           <Form.Item
             name="menu_nm"

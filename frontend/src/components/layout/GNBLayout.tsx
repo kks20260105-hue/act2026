@@ -71,7 +71,7 @@ export default function GNBLayout() {
     <Header className={styles.header} style={{ background: '#001529' }}>
       {/* 로고 */}
       <div className={styles.logo} onClick={() => navigate('/')}>
-        KKS Portal
+        Portal Service
       </div>
 
       {/* GNB 메뉴 - 하위 메뉴는 드롭다운으로 자동 표시 */}

@@ -132,7 +132,7 @@ const SocialRegisterPage: React.FC = () => {
             소셜 계정으로 가입
           </div>
           <Text style={{ fontSize: 13, color: '#888', lineHeight: 1.6 }}>
-            사용 중인 소셜 계정을 선택하여<br />KKS Portal에 가입하세요.
+            사용 중인 소셜 계정을 선택하여<br />Portal Service에 가입하세요.
           </Text>
 
           {/* 혜택 안내 */}
@@ -282,7 +282,7 @@ const SocialRegisterPage: React.FC = () => {
         </div>
         <div style={{ textAlign: 'center', marginTop: 8 }}>
           <Text style={{ fontSize: 11, color: '#ccc' }}>
-            © 2026 KKS Portal Service. All rights reserved.
+            © 2026 Portal Service. All rights reserved.
           </Text>
         </div>
       </div>

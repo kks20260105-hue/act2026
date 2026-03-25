@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import styles from './HomePage.module.css';
-import { Typography, Card, Row, Col, Space } from 'antd';
+import { Typography, Card, Row, Col, Space, Carousel } from 'antd';
 import {
   AppstoreOutlined, UploadOutlined, TeamOutlined,
   ApartmentOutlined, UserSwitchOutlined,
+  RocketOutlined, SafetyCertificateOutlined, BarChartOutlined,
+  CloudServerOutlined, SolutionOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import PageLayout from '../components/layout/PageLayout';
@@ -27,6 +29,45 @@ import { CSS } from '@dnd-kit/utilities';
 const { Title, Text } = Typography;
 
 const STORAGE_KEY = 'admin_card_order';
+
+// ── 배너 슬라이드 데이터 ──────────────────────────────────────────
+const BANNER_SLIDES = [
+  {
+    id:       1,
+    gradient: 'linear-gradient(135deg, #1677ff 0%, #0050b3 100%)',
+    icon:     <RocketOutlined style={{ fontSize: 56, color: 'rgba(255,255,255,0.9)' }} />,
+    title:    'Portal Service에 오신 것을 환영합니다',
+    sub:      '업무 효율을 높이는 통합 엔터프라이즈 포털',
+  },
+  {
+    id:       2,
+    gradient: 'linear-gradient(135deg, #52c41a 0%, #237804 100%)',
+    icon:     <AppstoreOutlined style={{ fontSize: 56, color: 'rgba(255,255,255,0.9)' }} />,
+    title:    '메뉴 관리 시스템',
+    sub:      'GNB / LNB 구조로 서비스 메뉴를 손쉽게 관리하세요',
+  },
+  {
+    id:       3,
+    gradient: 'linear-gradient(135deg, #eb2f96 0%, #780650 100%)',
+    icon:     <SafetyCertificateOutlined style={{ fontSize: 56, color: 'rgba(255,255,255,0.9)' }} />,
+    title:    '역할 기반 접근 제어 (RBAC)',
+    sub:      'Role 단위로 메뉴 권한을 세밀하게 설정하세요',
+  },
+  {
+    id:       4,
+    gradient: 'linear-gradient(135deg, #faad14 0%, #ad6800 100%)',
+    icon:     <SolutionOutlined style={{ fontSize: 56, color: 'rgba(255,255,255,0.9)' }} />,
+    title:    '사용자 권한 관리',
+    sub:      '사용자별 Role 부여 및 만료일 관리로 보안을 강화하세요',
+  },
+  {
+    id:       5,
+    gradient: 'linear-gradient(135deg, #722ed1 0%, #391085 100%)',
+    icon:     <CloudServerOutlined style={{ fontSize: 56, color: 'rgba(255,255,255,0.9)' }} />,
+    title:    '클라우드 기반 인프라',
+    sub:      'Supabase + Vercel로 안정적인 서비스 환경을 제공합니다',
+  },
+];
 
 const DEFAULT_CARDS = [
   { id: 'menus',       title: '메뉴 관리',        icon: <AppstoreOutlined   style={{ fontSize: 32, color: '#1677ff' }} />, path: '/admin/menus' },
@@ -129,7 +170,25 @@ const HomePage: React.FC = () => {
     <PageLayout showLNB={false}>
       <div className={styles.container}>
         <Title level={3}>안녕하세요, {user?.email} 님 👋</Title>
-        <Text type="secondary">KKS 엔터프라이즈 포털에 오신 것을 환영합니다.</Text>
+        <Text type="secondary">Portal Service에 오신 것을 환영합니다.</Text>
+
+        {/* ── 배너 캐러셀 ─────────────────────────────────────────── */}
+        <div className={styles.bannerWrap}>
+          <Carousel autoplay autoplaySpeed={5000} dots effect="fade" dotPosition="bottom">
+            {BANNER_SLIDES.map((slide) => (
+              <div key={slide.id}>
+                <div
+                  className={styles.bannerSlide}
+                  style={{ background: slide.gradient }}
+                >
+                  <div className={styles.bannerIcon}>{slide.icon}</div>
+                  <div className={styles.bannerTitle}>{slide.title}</div>
+                  <div className={styles.bannerSub}>{slide.sub}</div>
+                </div>
+              </div>
+            ))}
+          </Carousel>
+        </div>
 
         {isAdmin && (
           <div className={styles.adminSection}>

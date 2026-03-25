@@ -216,7 +216,7 @@ const RegisterPage: React.FC = () => {
         </div>
 
         <div style={{ textAlign: 'center', marginTop: 16 }}>
-          <Text style={{ fontSize: 11, color: '#aaaaaa' }}>© 2026 KKS Portal Service. All rights reserved.</Text>
+          <Text style={{ fontSize: 11, color: '#aaaaaa' }}>© 2026 Portal Service. All rights reserved.</Text>
         </div>
       </Card>
     </div>

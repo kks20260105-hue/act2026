@@ -70,7 +70,7 @@ create table if not exists public.tb_menu (
   menu_nm         text        not null,
   menu_url        text        unique not null,
   parent_menu_id  uuid        references public.tb_menu(menu_id) on delete set null,
-  menu_depth      smallint    not null check (menu_depth in (1, 2)),  -- 1=GNB, 2=LNB
+  menu_depth      smallint    not null check (menu_depth >= 1),  -- 1=GNB, 2=LNB, 3+=하위 (무제한 depth)
   menu_order      integer     not null default 1,
   icon_class      text,
   use_yn          char(1)     not null default 'Y',
@@ -83,7 +83,7 @@ create index idx_tb_menu_depth     on public.tb_menu(menu_depth, use_yn, menu_or
 
 comment on table  public.tb_menu               is 'GNB/LNB 메뉴 마스터';
 comment on column public.tb_menu.menu_url      is '메뉴 URL 경로 (유니크, / 시작)';
-comment on column public.tb_menu.menu_depth    is '1=GNB(상단), 2=LNB(사이드)';
+comment on column public.tb_menu.menu_depth    is '1=GNB(상단), 2=LNB(사이드), 3+=하위메뉴 (무제한 depth)';
 comment on column public.tb_menu.parent_menu_id is 'GNB의 menu_id (depth=2일 때 필수)';
 
 -- 기본 메뉴 삽입
