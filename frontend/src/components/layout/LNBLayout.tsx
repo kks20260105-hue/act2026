@@ -4,6 +4,7 @@ import type { ItemType } from 'antd/es/menu/interface';
 import styles from './LNBLayout.module.css';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useMenuStore } from '../../stores/menuStore';
+import { useMyMenus } from '../../hooks/useMenuTree';
 import type { Menu as MenuType } from '../../types/menu';
 
 const { Sider } = Layout;
@@ -47,6 +48,8 @@ function getAllParentKeys(allMenus: MenuType[]): string[] {
 }
 
 export default function LNBLayout({ parentMenuUrl }: Props) {
+  // 내 메뉴가 로드되지 않았을 때도 메뉴를 가져오도록 훅 호출
+  useMyMenus();
   const navigate = useNavigate();
   const location = useLocation();
   const myMenus  = useMenuStore((s) => s.myMenus) ?? [];
@@ -55,11 +58,18 @@ export default function LNBLayout({ parentMenuUrl }: Props) {
 
   // 활성 GNB 자동 감지
   const activeGnb = useMemo(() => {
-    const url = parentMenuUrl ??
-      gnbMenus.find((g) =>
-        location.pathname === g.menu_url ||
-        location.pathname.startsWith(g.menu_url + '/'),
-      )?.menu_url;
+    // parentMenuUrl로 GNB의 하위 경로(/admin/manageqa 등)가 넘어오는 경우,
+    // 해당 경로가 속한 GNB를 찾아 반환하도록 처리.
+    if (parentMenuUrl) {
+      const found = gnbMenus.find((g) =>
+        parentMenuUrl === g.menu_url || parentMenuUrl.startsWith(g.menu_url + '/')
+      );
+      if (found) return found;
+    }
+
+    const url = gnbMenus.find((g) =>
+      location.pathname === g.menu_url || location.pathname.startsWith(g.menu_url + '/')
+    )?.menu_url;
     return gnbMenus.find((g) => g.menu_url === url) ?? null;
   }, [parentMenuUrl, gnbMenus, location.pathname]);
 
@@ -78,7 +88,15 @@ export default function LNBLayout({ parentMenuUrl }: Props) {
   }, [activeGnb, myMenus]);
 
   const menuItems = useMemo(
-    () => buildItems(subMenus, activeGnb?.menu_id ?? null, navigate),
+    () => {
+      const items = buildItems(subMenus, activeGnb?.menu_id ?? null, navigate);
+      // LNB에 /admin/manageqa 항목이 없으면 관리자용 툴 페이지 링크 추가
+      const exists = (subMenus || []).some((m) => m.menu_url === '/admin/manageqa');
+      if (!exists) {
+        items.push({ key: '/admin/manageqa', label: 'AI 권한관리', onClick: () => navigate('/admin/manageqa') } as ItemType);
+      }
+      return items;
+    },
     [subMenus, activeGnb, navigate],
   );
 

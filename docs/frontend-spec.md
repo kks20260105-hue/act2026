@@ -87,11 +87,11 @@ frontend/src/
 │   ├── ForbiddenPage.tsx       → 403 권한 없음
 │   ├── NotFoundPage.tsx        → 404
 │   └── admin/
-│       ├── MenuManagePage.tsx  → GNB/LNB 메뉴 관리
-│       ├── MenuUploadPage.tsx  → 엑셀 업로드 관리
+│       ├── Menu01_ManagePage.tsx  → GNB/LNB 메뉴 관리
 │       ├── RoleManagePage.tsx  → Role 관리
 │       ├── MenuRolePage.tsx    → 메뉴-Role 매핑
 │       └── UserRolePage.tsx    → 사용자 Role 관리
+│       ├── MenuUploadPage.tsx  → 엑셀 업로드 관리
 │
 ├── types/
 │   ├── auth.ts                 → Auth 관련 타입

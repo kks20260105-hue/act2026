@@ -15,6 +15,7 @@ const menuRoutes     = require('./routes/menuRoutes');
 const roleRoutes     = require('./routes/roleRoutes');
 const menuRoleRoutes = require('./routes/menuRoleRoutes');
 const userRoleRoutes = require('./routes/userRoleRoutes');
+const claudeRoutes   = require('./routes/claudeRoutes');
 
 const app = express();
 
@@ -93,6 +94,9 @@ app.use('/api/users/:userId/roles', apiLimiter, userRoleRoutes);
 // Auth 라우터는 authLimiter 적용
 const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authLimiter, authRoutes);
+
+// Anthropic Claude 프록시
+app.use('/api/claude', apiLimiter, claudeRoutes);
 
 // ─────────────────────────────────────────────
 // 에러 핸들러 (전역)

@@ -17,6 +17,7 @@ const MenuUploadPage   = lazy(() => import('../pages/admin/MenuUploadPage'));
 const Menu02_RoleManagePage   = lazy(() => import('../pages/admin/Menu02_RoleManagePage'));
 const Menu03_MenuRolePage     = lazy(() => import('../pages/admin/Menu03_MenuRolePage'));
 const Menu04_MenuRolePage     = lazy(() => import('../pages/admin/Menu04_UserRolePage'));
+const AiPermissionChat      = lazy(() => import('../pages/openai/Aipermissionchat'));
 
 const Loading = () => <LoadingSpinner fullPage />;
 
@@ -58,6 +59,7 @@ const router = createBrowserRouter([
           { path: '/admin/roles',      element: <Suspense fallback={<Loading />}><Menu02_RoleManagePage /></Suspense> },
           { path: '/admin/menu-roles', element: <Suspense fallback={<Loading />}><Menu03_MenuRolePage /></Suspense> },
           { path: '/admin/user-roles', element: <Suspense fallback={<Loading />}><Menu04_MenuRolePage /></Suspense> },
+          { path: '/admin/manageqa',  element: <Suspense fallback={<Loading />}><AiPermissionChat /></Suspense> },
         ],
       },
     ],
