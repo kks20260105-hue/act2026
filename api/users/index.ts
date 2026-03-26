@@ -31,8 +31,20 @@ async function handler(req: VercelRequest, res: VercelResponse) {
   const { data, error, count } = await query;
   if (error) return res.status(500).json(errorResponse('DB_ERROR', error.message));
 
+  // 서버 측에서 tb_user_role 필터링: use_yn='Y' 이고 end_dt가 null 또는 오늘 이후인 항목만 포함
+  const today = new Date().toISOString().split('T')[0];
+  const filtered = (data || []).map((u: any) => {
+    if (!u.tb_user_role || !Array.isArray(u.tb_user_role)) return u;
+    u.tb_user_role = u.tb_user_role.filter((ur: any) => {
+      if (ur.use_yn !== 'Y') return false;
+      if (!ur.end_dt) return true;
+      return ur.end_dt >= today;
+    });
+    return u;
+  });
+
   return res.status(200).json({
-    ...successResponse(data),
+    ...successResponse(filtered),
     total: count ?? 0,
     page:  pageNum,
     limit: limitNum,

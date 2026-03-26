@@ -11,6 +11,7 @@ import {
 import { useUserRoles, useGrantRole, useRevokeRole } from '../../hooks/useUserRoles';
 import { useRoles } from '../../hooks/useRoles';
 import { useUsers } from '../../hooks/useUsers';
+import DeleteSub1 from '../../components/admin/DeleteSub1';
 import type { UserProfile } from '../../hooks/useUsers';
 import PageLayout from '../../components/layout/PageLayout';
 import type { UserRole } from '../../types/role';
@@ -68,6 +69,7 @@ export default function Menu04_MenuRolePage() {
   };
 
   const handleGrant = async () => {
+    if (grantRole.status === 'pending') return;
     const values = await form.validateFields();
     try {
       await grantRole.mutateAsync({
@@ -219,8 +221,9 @@ export default function Menu04_MenuRolePage() {
       <Card
         size="small"
         title={
-          <Space>
-            <Input
+          <Space style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+            <Space>
+              <Input
               placeholder="이름 / 이메일 / 부서 검색"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
@@ -232,6 +235,10 @@ export default function Menu04_MenuRolePage() {
               allowClear
               onClear={() => { setSearchInput(''); setSearch(''); setPage(1); }}
             />
+            </Space>
+            <Space>
+              <DeleteSub1 allowFull />
+            </Space>
           </Space>
         }
       >
@@ -386,6 +393,7 @@ export default function Menu04_MenuRolePage() {
         title={`Role 부여 — ${selectedUser?.display_name ?? selectedUser?.name ?? selectedUser?.username ?? selectedUser?.email ?? ''}`}
         open={grantOpen}
         onOk={handleGrant}
+        confirmLoading={grantRole.status === 'pending'}
         onCancel={() => { setGrantOpen(false); form.resetFields(); }}
         okText="부여"
         cancelText="취소"

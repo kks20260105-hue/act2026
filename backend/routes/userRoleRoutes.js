@@ -33,6 +33,7 @@ router.get('/', verifyToken, requireRole('SUPER_ADMIN', 'ADMIN'), async (req, re
       .from('tb_user_role')
       .select('*, tb_role(role_id, role_cd, role_nm, role_color, sort_order)')
       .eq('user_id', req.params.userId)
+      .eq('use_yn', 'Y')
       .or(`end_dt.is.null,end_dt.gte.${today}`);
 
     if (error) return res.status(500).json({ success: false, message: error.message });
@@ -72,9 +73,10 @@ router.delete('/:roleId', verifyToken, requireRole('SUPER_ADMIN', 'ADMIN'), asyn
   try {
     const roleId = req.params.roleId;
     const admin = getSupabaseAdmin();
+
     const { error } = await admin
       .from('tb_user_role')
-      .update({ use_yn: 'N' })
+      .delete()
       .eq('user_id', req.params.userId)
       .eq('role_id', roleId);
 

@@ -8,6 +8,7 @@ export const ErrorCode = {
   // Validation
   VALIDATION_ERROR:    'VALIDATION_ERROR',
   MISSING_FIELD:       'MISSING_FIELD',
+  CONFIRM_REQUIRED:    'CONFIRM_REQUIRED',
   INVALID_FORMAT:      'INVALID_FORMAT',
 
   // Resource

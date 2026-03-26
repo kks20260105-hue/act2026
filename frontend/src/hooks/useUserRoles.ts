@@ -16,7 +16,11 @@ export function useGrantRole(userId: string) {
   return useMutation({
     mutationFn: (body: { role_id: string; start_dt?: string; end_dt?: string }) =>
       userRoleApi.grant(userId, body),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['user-roles', userId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['user-roles', userId] });
+      // Invalidate parent users list so the main list reflects granted roles immediately
+      qc.invalidateQueries({ queryKey: ['users'], exact: false });
+    },
   });
 }
 
@@ -25,6 +29,10 @@ export function useRevokeRole(userId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (roleId: string) => userRoleApi.revoke(userId, roleId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['user-roles', userId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['user-roles', userId] });
+      // Invalidate all queries that start with 'users' (users list cache uses params as part of the key)
+      qc.invalidateQueries({ queryKey: ['users'], exact: false });
+    },
   });
 }

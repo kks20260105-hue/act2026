@@ -21,6 +21,7 @@ async function handler(req: VercelRequest, res: VercelResponse) {
       .from('tb_user_role')
       .select('*, tb_role(role_id, role_cd, role_nm, role_color, sort_order)')
       .eq('user_id', userId)
+      .eq('use_yn', 'Y')
       .or(`end_dt.is.null,end_dt.gte.${today}`);
 
     if (error) return res.status(500).json(errorResponse('DB_ERROR', error.message));
@@ -32,22 +33,57 @@ async function handler(req: VercelRequest, res: VercelResponse) {
     const { role_id, start_dt, end_dt } = req.body;
     if (!role_id) return res.status(400).json(errorResponse('MISSING_FIELD', 'role_id 필수'));
 
-    const { data, error } = await supabaseAdmin
+
+    // 기존 회수된 Role(use_yn='N')이 있으면 update로 되살림, 없으면 insert
+    const { data: existing } = await supabaseAdmin
       .from('tb_user_role')
-      .insert({
-        user_id:    userId,
-        role_id,
-        start_dt:   start_dt ?? new Date().toISOString().split('T')[0],
-        end_dt:     end_dt ?? null,
-        use_yn:     'Y',
-        granted_by: actor.id,
-      })
-      .select('*, tb_role(role_cd)')
-      .single();
+      .select('*')
+      .eq('user_id', userId)
+      .eq('role_id', role_id)
+      .eq('use_yn', 'N')
+      .maybeSingle();
+
+    let data, error;
+    if (existing) {
+      // 되살리기: use_yn='Y', start_dt, end_dt, granted_by, updated_at
+      const updateRes = await supabaseAdmin
+        .from('tb_user_role')
+        .update({
+          use_yn: 'Y',
+          start_dt: start_dt ?? new Date().toISOString().split('T')[0],
+          end_dt: end_dt ?? null,
+          granted_by: actor.id,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_role_id', existing.user_role_id)
+        .select('*, tb_role(role_cd)')
+        .single();
+      data = updateRes.data;
+      error = updateRes.error;
+    } else {
+      // 신규 insert
+      const insertRes = await supabaseAdmin
+        .from('tb_user_role')
+        .insert({
+          user_id:    userId,
+          role_id,
+          start_dt:   start_dt ?? new Date().toISOString().split('T')[0],
+          end_dt:     end_dt ?? null,
+          use_yn:     'Y',
+          granted_by: actor.id,
+        })
+        .select('*, tb_role(role_cd)')
+        .single();
+      data = insertRes.data;
+      error = insertRes.error;
+    }
 
     if (error) {
       const code = error.code === '23505' ? 'DUPLICATE' : 'DB_ERROR';
-      return res.status(error.code === '23505' ? 409 : 500).json(errorResponse(code, error.message));
+      const msg = error.code === '23505'
+        ? '이미 부여된 Role입니다.'
+        : error.message;
+      return res.status(error.code === '23505' ? 409 : 500).json(errorResponse(code, msg));
     }
 
     // 감사 이력 저장
@@ -78,8 +114,9 @@ async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (!existing) return res.status(404).json(errorResponse('NOT_FOUND', '해당 Role을 찾을 수 없습니다.'));
 
+
     const { error } = await supabaseAdmin
-      .from('tb_user_role').update({ use_yn: 'N' }).eq('user_id', userId).eq('role_id', roleId);
+      .from('tb_user_role').delete().eq('user_id', userId).eq('role_id', roleId);
 
     if (error) return res.status(500).json(errorResponse('DB_ERROR', error.message));
 
